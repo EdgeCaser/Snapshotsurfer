@@ -207,9 +207,9 @@ if len(spacename)>1:
         st.write('Chart Saved')
         #st.pyplot(sns.scatterplot(data=data_means, x="percentage_voters_counted_stepped", y="cum_percentage_of_total_vp", zorder=3, s=600, marker='X', color='orange'))
         st.pyplot(fig)
-        p50 = db.query("select min(percentage_voters_counted_stepped) "
-                       "from data_means  where cum_percentage_of_total_vp>=0.5 ").df()
-        p50display = p50.iloc[0, 0]
+        p50 = db.query("select min(percentage_voters_counted) "
+                       "from crunch_data  where cum_percentage_of_total_vp>=0.5 ").df()
+        p50display = round(100 * (p50.iloc[0, 0]), 2)
         st.write('On average, a proposal at ', spacename, 'takes ',p50display,'% of the voting population.' )
 
         st.write('all done. Enjoy!')
