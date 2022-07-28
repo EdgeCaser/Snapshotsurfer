@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from datetime import date
+import subgrounds
 from subgrounds.subgraph import SyntheticField, FieldPath
 from subgrounds.subgrounds import Subgrounds
 import math as mt

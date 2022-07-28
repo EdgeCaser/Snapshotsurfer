@@ -15,6 +15,7 @@ duckdb = "*"
 seaborn = "*"
 matplotlib = "*"
 streamlit = "*"
+
 [dev-packages]
 
 [requires]
