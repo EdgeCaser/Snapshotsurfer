@@ -165,6 +165,8 @@ if len(spacename)>1:
         ##print(data_means)
         plot_title = spacename + ' snapshots % of vote along population'
 
+        st.write(data_means)
+
 
         #sns.lineplot(data=crunch_data, y="cum_percentage_of_total_vp",x="percentage_voters_counted_stepped", hue="Proposal",zorder=-3).set(title=plot_title,xlabel='% of voters',ylabel='% of voting power')#, legend=False)
         ax = sns.scatterplot(data=crunch_data, y="cum_percentage_of_total_vp", x="percentage_voters_counted_stepped").set(title=plot_title, xlabel='% of voters', ylabel='% of voting power')

@@ -194,10 +194,11 @@ if len(spacename)>1:
         plt.rc("figure", figsize=(40, 20))
         sns.set_style("whitegrid")
         plt.rc("font", size=18)
-        data_means = crunch_data.groupby("percentage_voters_counted_stepped")["cum_percentage_of_total_vp"].agg("mean").reset_index()
+        data_means = crunch_data.groupby("percentage_voters_counted_stepped")["cum_percentage_of_total_vp","percentage_voters_counted"].agg("mean").reset_index()
         ##print(data_means)
         plot_title = spacename + ' snapshots % of vote along population'
 
+        st.write(data_means)
 
         #sns.lineplot(data=crunch_data, y="cum_percentage_of_total_vp",x="percentage_voters_counted_stepped", hue="Proposal",zorder=-3).set(title=plot_title,xlabel='% of voters',ylabel='% of voting power')#, legend=False)
         ax = sns.scatterplot(data=crunch_data, y="cum_percentage_of_total_vp", x="percentage_voters_counted_stepped").set(title=plot_title, xlabel='% of voters', ylabel='% of voting power')
@@ -208,8 +209,8 @@ if len(spacename)>1:
         #st.pyplot(sns.scatterplot(data=data_means, x="percentage_voters_counted_stepped", y="cum_percentage_of_total_vp", zorder=3, s=600, marker='X', color='orange'))
         st.pyplot(fig)
         p50 = db.query("select min(percentage_voters_counted) "
-                       "from crunch_data  where cum_percentage_of_total_vp>=0.5 ").df()
-        p50display = round(100 * (p50.iloc[0, 0]), 2)
+                       "from data_means  where cum_percentage_of_total_vp>=0.5 ").df()
+        p50display = round(100*(p50.iloc[0,0]),2)
         st.write('On average, a proposal at ', spacename, 'takes ',p50display,'% of the voting population.' )
 
         st.write('all done. Enjoy!')
