@@ -13,6 +13,31 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import streamlit as st
 
+st.set_page_config(layout="wide")
+
+st.markdown("""
+<style>
+.bigger-font {
+    font-size:18px !important;
+}
+.biggest-font {
+    font-size:20px !important;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+st.write('# Snapshot Surfer')
+st.markdown('<p class="bigger-font">This tool will help you view how decentralized a DAO\'s voting power is.</p>', unsafe_allow_html=True)
+
+st.markdown('<p class="bigger-font">Some DAOs voting power has a 1:1 correlation with their token holdings. Others use different schemes that distribute voting power in different ways, all the way down to one-wallet-one-vote. </p>', unsafe_allow_html=True)
+
+st.markdown('<p class="bigger-font"> When a few people hold a lot of voting power, a small minority drives the result of any proposal on Snapshot. This is not good or bad. There\'s examples of successful organizations with all kinds of power distribution across history.</p>', unsafe_allow_html=True)
+
+st.markdown('<p class="bigger-font"> This tool helps illustrate how decentralized voting power is in any DAO in Snapshot It will pull down all proposals data and analyze the distribution of power. It will download the data to the folder of your choice </p>', unsafe_allow_html=True)
+
+
+
 spacename = st.text_input('Where to pull from?',help='Which space, eg: curve.eth')
 
 
@@ -44,6 +69,8 @@ if len(spacename)>1:
         )
 
         st.write('Let\'s get started! Pulling from: ', spacename, ':sunglasses:')
+
+
 
         proposals_snapshots = sg.query_df([
             proposals.title,
@@ -127,8 +154,7 @@ if len(spacename)>1:
             progress = 100*(round(x/total_proposals,4))
             ##clear_output(wait=True)
             mybar.progress(chartprogress)
-            if progress%5==0:
-                st.write ("Progress",progress,"%")
+
 
         print(len(voting_snapshots_list),' records')
 
@@ -184,7 +210,10 @@ if len(spacename)>1:
         crunch_data.insert(0, 'DAO', spacename)
         crunch_data.head(n=10)
 
+        st.write('Sample Aggregate data')
+        st.write(crunch_data.head(10))
         ##spit out the file!
+
         crunch_data_path =final_file+'\\'+spacename+'_crunch_data_path'+str(date.today().strftime("%b-%d-%Y"))+'_'+str(len(crunch_data))+'.csv'
         crunch_data.to_csv(crunch_data_path, index = False)
         st.write('Aggregate data saved')
@@ -200,6 +229,16 @@ if len(spacename)>1:
 
         st.write(data_means)
 
+        p50 = db.query("select min(percentage_voters_counted) "
+                       "from data_means  where cum_percentage_of_total_vp>=0.5 ").df()
+
+        p50display = round(100 * (p50.iloc[0, 0]), 2)
+
+        st.write('### On average, a proposal at ', spacename, 'takes ', p50display,
+                 '% of the voting population.')
+
+        st.write('The chart below describes all proposals in', spacename,'.The orange markers represent what percentage of the population it takes to reach a given percentage of voting power.')
+
         #sns.lineplot(data=crunch_data, y="cum_percentage_of_total_vp",x="percentage_voters_counted_stepped", hue="Proposal",zorder=-3).set(title=plot_title,xlabel='% of voters',ylabel='% of voting power')#, legend=False)
         ax = sns.scatterplot(data=crunch_data, y="cum_percentage_of_total_vp", x="percentage_voters_counted_stepped").set(title=plot_title, xlabel='% of voters', ylabel='% of voting power')
         chart = sns.scatterplot(data=data_means, x="percentage_voters_counted_stepped", y="cum_percentage_of_total_vp", zorder=3, s=400, marker='X', color='orange')
@@ -208,12 +247,11 @@ if len(spacename)>1:
         st.write('Chart Saved')
         #st.pyplot(sns.scatterplot(data=data_means, x="percentage_voters_counted_stepped", y="cum_percentage_of_total_vp", zorder=3, s=600, marker='X', color='orange'))
         st.pyplot(fig)
-        p50 = db.query("select min(percentage_voters_counted) "
-                       "from data_means  where cum_percentage_of_total_vp>=0.5 ").df()
-        p50display = round(100*(p50.iloc[0,0]),2)
-        st.write('On average, a proposal at ', spacename, 'takes ',p50display,'% of the voting population.' )
 
-        st.write('all done. Enjoy!')
+        st.markdown(
+            '<p class="bigger-font">All done. Enjoy!</p>',
+            unsafe_allow_html=True)
+        st.write('')
         # The chart above shows what % of all possible votes has been cast (Y axis) as each incremental percent of the voting population casts their vote (X axis). Each line is a Proposal and has a unique color, so that a dot on each percent point represents what % of total voting power was accumulated by that group. The color represents which vote was cast.
         # The Orange X shows the average % of power accumulated across all elections.
 
