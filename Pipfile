@@ -4,19 +4,19 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-subgrounds = "*"
 nbformat = "*"
 ipykernel = "*"
 datetime = "*"
 math = "*"
 pandas = "*"
-os = "*"
 duckdb = "*"
 seaborn = "*"
 matplotlib = "*"
 streamlit = "*"
 
 [dev-packages]
+subgrounds = "*"
+os = "*"
 
 [requires]
 python_version = "3.10"
