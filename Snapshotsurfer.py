@@ -2,12 +2,10 @@
 
 from datetime import datetime
 from datetime import date
-import subgrounds
 from subgrounds.subgraph import SyntheticField, FieldPath
 from subgrounds.subgrounds import Subgrounds
-import math as mt
 import pandas as pd
-import  os as os
+import os as os
 import duckdb as db
 import seaborn as sns
 import matplotlib.pyplot as plt
