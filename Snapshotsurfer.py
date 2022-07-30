@@ -25,6 +25,8 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+
+
 st.write('# Snapshot Surfer')
 st.write('### By @Edgecaser')
 
@@ -36,72 +38,111 @@ st.markdown('<p class="bigger-font"> When a few people hold a lot of voting powe
 
 st.markdown('<p class="bigger-font"> This tool helps illustrate how decentralized voting power is in any DAO in Snapshot It will pull down all proposals data and analyze the distribution of power. It will download the data to the folder of your choice </p>', unsafe_allow_html=True)
 
-
+st.markdown(
+    '<p class="bigger-font">For example, OlympusDAO has a url like https://snapshot.org/#/olympusdao.eth. Therefore, write olympusdao.eth when queried to get its data.</p>',
+    unsafe_allow_html=True)
+st.write('')
 
 spacename = st.text_input('Where to pull from?',help='Which space, eg: curve.eth')
 
 
 if len(spacename)>1:
 
-    file = st.text_input('Where to write to?',placeholder= None,help='Where in your HDD to save ouput',type="password")
+    sg = Subgrounds()
+    snapshot = sg.load_api('https://hub.snapshot.org/graphql')
 
-    if len(file) > 1:
+    snapshot.Proposal.datetime = SyntheticField(
+      lambda timestamp: str(datetime.fromtimestamp(timestamp)),
+      SyntheticField.STRING,
+      snapshot.Proposal.end,
+    )
 
-        sg = Subgrounds()
-        snapshot = sg.load_api('https://hub.snapshot.org/graphql')
+    proposals = snapshot.Query.proposals(
+      orderBy='created',
+      orderDirection='desc',
+      first=10000,
 
-        snapshot.Proposal.datetime = SyntheticField(
-          lambda timestamp: str(datetime.fromtimestamp(timestamp)),
-          SyntheticField.STRING,
-          snapshot.Proposal.end,
-        )
+      where=[
+        snapshot.Proposal.space == spacename, ##'fuse.eth',
+        snapshot.Proposal.state == 'closed'
+        ##snapshot.Proposal.title == 'OIP-18: Reward rate framework and reduction',
+      ]
+    )
 
-        proposals = snapshot.Query.proposals(
-          orderBy='created',
-          orderDirection='desc',
-          first=10000,
+    st.write('Let\'s get started! Pulling from: ', spacename, ':sunglasses:')
 
-          where=[
-            snapshot.Proposal.space == spacename, ##'fuse.eth',
-            snapshot.Proposal.state == 'closed'
-            ##snapshot.Proposal.title == 'OIP-18: Reward rate framework and reduction',
-          ]
-        )
+    proposals_snapshots = sg.query_df([
+        proposals.title,
+        proposals.id,
+        proposals.body,
+        proposals.scores,
+        proposals.scores_total
+    ])
 
-        st.write('Let\'s get started! Pulling from: ', spacename, ':sunglasses:')
+    proposals_choices = sg.query(proposals.choices)
+
+    proposals_choices = pd.DataFrame(proposals_choices)
+
+    olympus_governance_view = pd.concat([proposals_snapshots,proposals_choices], axis=1)
+
+    ##let's view the output just to make sure
+    olympus_governance_view.head(5)
+
+    #let's remove duplicate rows the easy way, and add the name of the DAO to the table
+    olympus_governance_view_clean = olympus_governance_view.copy(deep=True)
+    olympus_governance_view_clean.insert(0, 'DAO', spacename)
 
 
+    st.write("Sample list of Proposals")
+    st.write(olympus_governance_view_clean.head(10))
 
-        proposals_snapshots = sg.query_df([
-            proposals.title,
-            proposals.id,
-            proposals.body,
-            proposals.scores,
-            proposals.scores_total
-        ])
+    @st.cache
+    def convert_df(df):
+        return df.to_csv().encode('utf-8')
 
-        proposals_choices = sg.query(proposals.choices)
 
-        proposals_choices = pd.DataFrame(proposals_choices)
+    csv = convert_df(olympus_governance_view_clean)
 
-        olympus_governance_view = pd.concat([proposals_snapshots,proposals_choices], axis=1)
+    st.download_button(
+        "Press to download list of Proposals",
+        csv,
+        "olympus_governance_view_clean.csv",
+        "text/csv",
+        key='download-csv'
+    )
 
-        ##let's view the output just to make sure
-        olympus_governance_view.head(5)
+    total_proposals = len(olympus_governance_view_clean)
+    #total_proposals
 
-        #let's remove duplicate rows the easy way, and add the name of the DAO to the table
-        olympus_governance_view_clean = olympus_governance_view.copy(deep=True)
-        olympus_governance_view_clean.insert(0, 'DAO', spacename)
-        olympus_governance_view_clean.head(10)
+    proposal_id = olympus_governance_view_clean.iloc[0,2]
+    #proposal_id
 
-        path =file+'/'+spacename+'_proposals_table_'+str(date.today().strftime("%b-%d-%Y"))+'_'+str(len(olympus_governance_view_clean))+'_proposals.csv'
-        olympus_governance_view_clean.to_csv(path, index = False)
+    vote_tracker = snapshot.Query.votes(
+    orderBy = 'created',
+    orderDirection='desc',
+    first=10000,
+    where=[
+      snapshot.Vote.proposal == proposal_id
+    ]
+    )
 
-        total_proposals = len(olympus_governance_view_clean)
-        #total_proposals
+    voting_snapshots_list = sg.query_df([
+        vote_tracker.id,
+        vote_tracker.voter,
+        vote_tracker.created,
+        vote_tracker.choice,
+        vote_tracker.vp
+    ])
 
-        proposal_id = olympus_governance_view_clean.iloc[0,2]
-        #proposal_id
+    st.write('sample output: voting snapshots',voting_snapshots_list.head(10))
+
+
+    st.write('Pulling vote records...')
+
+    mybar = st.progress(0)
+    x=0
+    while x <total_proposals:
+        proposal_id = olympus_governance_view_clean.iloc[x,2]
 
         vote_tracker = snapshot.Query.votes(
         orderBy = 'created',
@@ -111,147 +152,161 @@ if len(spacename)>1:
           snapshot.Vote.proposal == proposal_id
         ]
         )
-
-        voting_snapshots_list = sg.query_df([
-            vote_tracker.id,
-            vote_tracker.voter,
-            vote_tracker.created,
-            vote_tracker.choice,
-            vote_tracker.vp
+        voting_snapshots = sg.query_df([
+        vote_tracker.id,
+        vote_tracker.voter,
+        vote_tracker.created,
+        vote_tracker.choice,
+        vote_tracker.vp
         ])
 
-        st.write('sample output: voting snapshots',voting_snapshots_list.head(10))
+        voting_snapshots['Proposal'] = proposal_id
+        voting_snapshots_list=pd.concat([voting_snapshots_list, voting_snapshots])
+
+        x=x+1
+        chartprogress = min((x/total_proposals),1)
+        progress = 100*(round(x/total_proposals,4))
+        ##clear_output(wait=True)
+        mybar.progress(chartprogress)
+
+    @st.cache
+    def convert_df(df):
+        return df.to_csv().encode('utf-8')
+    csv = convert_df(voting_snapshots_list)
+
+    st.download_button(
+        "Press to download voting records",
+        csv,
+        "voting_snapshots_list.csv",
+        "text/csv",
+        key='download-csv'
+    )
 
 
-        st.write('Pulling vote records...')
 
-        mybar = st.progress(0)
-        x=0
-        while x <total_proposals:
-            proposal_id = olympus_governance_view_clean.iloc[x,2]
+    #I join these two tables to create my charts as it makes life easier. We are going to build the charts here now, so here we go
+    governance_data = pd.merge(voting_snapshots_list, olympus_governance_view_clean, how='inner', left_on='Proposal', right_on='proposals_id')
+    del governance_data["proposals_body"]
+    st.write(governance_data.head(10))
 
-            vote_tracker = snapshot.Query.votes(
-            orderBy = 'created',
-            orderDirection='desc',
-            first=10000,
-            where=[
-              snapshot.Vote.proposal == proposal_id
-            ]
-            )
-            voting_snapshots = sg.query_df([
-            vote_tracker.id,
-            vote_tracker.voter,
-            vote_tracker.created,
-            vote_tracker.choice,
-            vote_tracker.vp
-            ])
+    @st.cache
+    def convert_df(df):
+        return df.to_csv().encode('utf-8')
 
-            voting_snapshots['Proposal'] = proposal_id
-            voting_snapshots_list=pd.concat([voting_snapshots_list, voting_snapshots])
+    csv = convert_df(governance_data)
 
-            x=x+1
-            chartprogress = min((x/total_proposals),1)
-            progress = 100*(round(x/total_proposals,4))
-            ##clear_output(wait=True)
-            mybar.progress(chartprogress)
+    st.download_button(
+        "Press to download joined governance data",
+        csv,
+        "governance_data.csv",
+        "text/csv",
+        key='download-csv'
+    )
+
+    crunch_data = db.query("select "
+                               "Proposal"
+                               ",votes_voter "
+                               ",votes_choice"
+                               ",votes_vp"
+                               ",votes_created"
+                               ",sum(votes_vp) over (Partition by Proposal  order by votes_vp desc, votes_created asc) as cumulative_vp"
+                               ",sum(votes_vp) over (Partition by Proposal) as total_vp"
+                               ",(votes_vp::decimal/sum(votes_vp::decimal) over (Partition by Proposal)) as percentange_of_total_vp "
+                               ",((sum(votes_vp) over (Partition by Proposal  order by votes_vp desc, votes_created asc))::decimal/sum(votes_vp::decimal) over (Partition by Proposal)) as cum_percentage_of_total_vp "
+                           ",round((sum(votes_vp) over (Partition by Proposal  order by votes_vp desc, votes_created asc))::decimal/sum(votes_vp::decimal) over (Partition by Proposal)) as cum_percentange_of_total_vp_stepped "
+                               ",row_number() over (Partition by Proposal order by votes_vp desc, votes_created asc) as proposal_voter_rank "
+                               ",count(votes_voter) over (Partition by Proposal  order by votes_vp desc, votes_created asc) voters_counted "
+                               ",(count(*) over (Partition by Proposal  order by votes_vp desc, votes_created asc))::decimal/(count(*) over (Partition by Proposal))::decimal percentage_voters_counted "
+                               ",round(100*(count(*) over (Partition by Proposal  order by votes_vp desc, votes_created asc))::decimal/(count(*) over (Partition by Proposal)))::decimal percentage_voters_counted_stepped "
+                           "from "
+                           "    governance_data  "
+                           ""
+                           "Group by "
+                           "    Proposal"
+                           "    ,votes_voter"
+                           "    ,votes_choice"
+                           "    , votes_vp "
+                           "    , votes_created "
+                           ""
+                           "Order by "
+                           "    Proposal, "
+                           "    votes_vp desc "
+                           "    , votes_created asc"
+                           "").df()
+    crunch_data.insert(0, 'DAO', spacename)
+    crunch_data.head(n=10)
+
+    st.write('Sample Stats data')
+    st.write(crunch_data.head(10))
+    ##spit out the file!
+
+    @st.cache
+    def convert_df(df):
+        return df.to_csv().encode('utf-8')
+    csv = convert_df(crunch_data)
+
+    st.download_button(
+        "Press to download Stats data",
+        csv,
+        "aggregated_data.csv",
+        "text/csv",
+        key='download-csv'
+    )
+
+    #crunch_data_path =final_file+'\\'+spacename+'_crunch_data_path'+str(date.today().strftime("%b-%d-%Y"))+'_'+str(len(crunch_data))+'.csv'
+    #crunch_data.to_csv(crunch_data_path, index = False)
+    st.write('Sample Aggregate data')
+
+    fig = plt.figure(figsize=(20, 8))
+
+    plt.rc("figure", figsize=(40, 20))
+    sns.set_style("whitegrid")
+    plt.rc("font", size=18)
+    data_means = crunch_data.groupby("percentage_voters_counted_stepped")["cum_percentage_of_total_vp","percentage_voters_counted"].agg("mean").reset_index()
+    ##print(data_means)
+    plot_title = spacename + ' snapshots % of vote along population'
+
+    st.write(data_means)
+
+    @st.cache
+    def convert_df(df):
+        return df.to_csv().encode('utf-8')
+
+    csv = convert_df(data_means)
+
+    st.download_button(
+        "Press to download Stats data",
+        csv,
+        "aggregated_data.csv",
+        "text/csv",
+        key='download-csv'
+    )
 
 
-        print(len(voting_snapshots_list),' records')
+    p50 = db.query("select min(percentage_voters_counted) "
+                   "from data_means  where cum_percentage_of_total_vp>=0.5 ").df()
 
-        #spit out the file
-        path =file+'/'+spacename+'_voting_snapshots_list_'+str(date.today().strftime("%b-%d-%Y"))+'_'+str(len(olympus_governance_view_clean))+'.csv'
-        voting_snapshots_list.to_csv(path, index = False)
-        st.write('Proposals list Saved')
+    p50display = round(100 * (p50.iloc[0, 0]), 2)
 
+    st.write('### On average, a proposal at ', spacename, 'takes ', p50display,
+             '% of the voting population.')
 
-        #I join these two tables to create my charts as it makes life easier. We are going to build the charts here now, so here we go
-        governance_data = pd.merge(voting_snapshots_list, olympus_governance_view_clean, how='inner', left_on='Proposal', right_on='proposals_id')
-        del governance_data["proposals_body"]
-        st.write(governance_data.head(10))
+    st.write('The chart below describes all proposals in', spacename,'.The orange markers represent what percentage of the population it takes to reach a given percentage of voting power.')
 
-        #Spit out the file, but save it in its own folder for easy access
-        final_file = file+'\\'+'final'
-        final_raw_file = final_file
-        os.makedirs(final_raw_file, exist_ok=True)
-        final_path =file+'\\'+spacename+'governance_data_'+str(date.today().strftime("%b-%d-%Y"))+'_'+str(len(governance_data))+'.csv'
-        governance_data.to_csv(final_path, index = False)
-        st.write('votes data Saved')
+    #sns.lineplot(data=crunch_data, y="cum_percentage_of_total_vp",x="percentage_voters_counted_stepped", hue="Proposal",zorder=-3).set(title=plot_title,xlabel='% of voters',ylabel='% of voting power')#, legend=False)
+    ax = sns.scatterplot(data=crunch_data, y="cum_percentage_of_total_vp", x="percentage_voters_counted_stepped").set(
+        title=plot_title, xlabel='% of voters', ylabel='% of voting power')
+    chart = sns.scatterplot(data=data_means, x="percentage_voters_counted_stepped", y="cum_percentage_of_total_vp",
+                            zorder=3, s=400, marker='X', color='orange')
+    # and save the chart file, too
+    #plt.savefig(final_file + '\\' + spacename + ' vote power distribution.png', dpi=50)
+    #st.write('Chart Saved')
+    # st.pyplot(sns.scatterplot(data=data_means, x="percentage_voters_counted_stepped", y="cum_percentage_of_total_vp", zorder=3, s=600, marker='X', color='orange'))
+    st.pyplot(fig)
 
-        crunch_data = db.query("select "
-                                   "Proposal"
-                                   ",votes_voter "
-                                   ",votes_choice"
-                                   ",votes_vp"
-                                   ",votes_created"
-                                   ",sum(votes_vp) over (Partition by Proposal  order by votes_vp desc, votes_created asc) as cumulative_vp"
-                                   ",sum(votes_vp) over (Partition by Proposal) as total_vp"
-                                   ",(votes_vp::decimal/sum(votes_vp::decimal) over (Partition by Proposal)) as percentange_of_total_vp "
-                                   ",((sum(votes_vp) over (Partition by Proposal  order by votes_vp desc, votes_created asc))::decimal/sum(votes_vp::decimal) over (Partition by Proposal)) as cum_percentage_of_total_vp "
-                               ",round((sum(votes_vp) over (Partition by Proposal  order by votes_vp desc, votes_created asc))::decimal/sum(votes_vp::decimal) over (Partition by Proposal)) as cum_percentange_of_total_vp_stepped "
-                                   ",row_number() over (Partition by Proposal order by votes_vp desc, votes_created asc) as proposal_voter_rank "
-                                   ",count(votes_voter) over (Partition by Proposal  order by votes_vp desc, votes_created asc) voters_counted "
-                                   ",(count(*) over (Partition by Proposal  order by votes_vp desc, votes_created asc))::decimal/(count(*) over (Partition by Proposal))::decimal percentage_voters_counted "
-                                   ",round(100*(count(*) over (Partition by Proposal  order by votes_vp desc, votes_created asc))::decimal/(count(*) over (Partition by Proposal)))::decimal percentage_voters_counted_stepped "
-                               "from "
-                               "    governance_data  "
-                               ""
-                               "Group by "
-                               "    Proposal"
-                               "    ,votes_voter"
-                               "    ,votes_choice"
-                               "    , votes_vp "
-                               "    , votes_created "
-                               ""
-                               "Order by "
-                               "    Proposal, "
-                               "    votes_vp desc "
-                               "    , votes_created asc"
-                               "").df()
-        crunch_data.insert(0, 'DAO', spacename)
-        crunch_data.head(n=10)
-
-        st.write('Sample Aggregate data')
-        st.write(crunch_data.head(10))
-        ##spit out the file!
-
-        crunch_data_path =final_file+'\\'+spacename+'_crunch_data_path'+str(date.today().strftime("%b-%d-%Y"))+'_'+str(len(crunch_data))+'.csv'
-        crunch_data.to_csv(crunch_data_path, index = False)
-        st.write('Aggregate data saved')
-
-        fig = plt.figure(figsize=(20, 8))
-
-        plt.rc("figure", figsize=(40, 20))
-        sns.set_style("whitegrid")
-        plt.rc("font", size=18)
-        data_means = crunch_data.groupby("percentage_voters_counted_stepped")["cum_percentage_of_total_vp","percentage_voters_counted"].agg("mean").reset_index()
-        ##print(data_means)
-        plot_title = spacename + ' snapshots % of vote along population'
-
-        st.write(data_means)
-
-        p50 = db.query("select min(percentage_voters_counted) "
-                       "from data_means  where cum_percentage_of_total_vp>=0.5 ").df()
-
-        p50display = round(100 * (p50.iloc[0, 0]), 2)
-
-        st.write('### On average, a proposal at ', spacename, 'takes ', p50display,
-                 '% of the voting population.')
-
-        st.write('The chart below describes all proposals in', spacename,'.The orange markers represent what percentage of the population it takes to reach a given percentage of voting power.')
-
-        #sns.lineplot(data=crunch_data, y="cum_percentage_of_total_vp",x="percentage_voters_counted_stepped", hue="Proposal",zorder=-3).set(title=plot_title,xlabel='% of voters',ylabel='% of voting power')#, legend=False)
-        ax = sns.scatterplot(data=crunch_data, y="cum_percentage_of_total_vp", x="percentage_voters_counted_stepped").set(title=plot_title, xlabel='% of voters', ylabel='% of voting power')
-        chart = sns.scatterplot(data=data_means, x="percentage_voters_counted_stepped", y="cum_percentage_of_total_vp", zorder=3, s=400, marker='X', color='orange')
-        # and save the chart file, too
-        plt.savefig(final_file+'\\'+spacename+' vote power distribution.png', dpi=50)
-        st.write('Chart Saved')
-        #st.pyplot(sns.scatterplot(data=data_means, x="percentage_voters_counted_stepped", y="cum_percentage_of_total_vp", zorder=3, s=600, marker='X', color='orange'))
-        st.pyplot(fig)
-
-        st.markdown(
-            '<p class="bigger-font">All done. Enjoy!</p>',
-            unsafe_allow_html=True)
-        st.write('')
-        # The chart above shows what % of all possible votes has been cast (Y axis) as each incremental percent of the voting population casts their vote (X axis). Each line is a Proposal and has a unique color, so that a dot on each percent point represents what % of total voting power was accumulated by that group. The color represents which vote was cast.
-        # The Orange X shows the average % of power accumulated across all elections.
+    st.markdown(
+        '<p class="bigger-font">All done. Enjoy!</p>',
+        unsafe_allow_html=True)
+    # The chart above shows what % of all possible votes has been cast (Y axis) as each incremental percent of the voting population casts their vote (X axis). Each line is a Proposal and has a unique color, so that a dot on each percent point represents what % of total voting power was accumulated by that group. The color represents which vote was cast.
+    # The Orange X shows the average % of power accumulated across all elections.
 
