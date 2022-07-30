@@ -5,7 +5,7 @@ from datetime import date
 from subgrounds.subgraph import SyntheticField, FieldPath
 from subgrounds.subgrounds import Subgrounds
 import pandas as pd
-import os as os.py
+#import os as os
 import duckdb as db
 import seaborn as sns
 import matplotlib.pyplot as plt
