@@ -77,7 +77,8 @@ if len(spacename)>1:
         proposals.title,
         proposals.id,
         proposals.body,
-        proposals.scores_total
+        proposals.scores_total,
+        proposals.created
     ])
 
     proposals_choices = sg.query(proposals.choices)
@@ -91,6 +92,10 @@ if len(spacename)>1:
 
     #let's remove duplicate rows the easy way, and add the name of the DAO to the table
     olympus_governance_view_clean = olympus_governance_view.copy(deep=True)
+
+    olympus_governance_view_clean = db.query("select  to_timestamp(proposals_created) as proposal_date,*  "
+                                         "from olympus_governance_view_clean order by proposals_created desc").df()
+
     olympus_governance_view_clean.insert(0, 'DAO', spacename)
 
 
@@ -139,7 +144,7 @@ if len(spacename)>1:
     mybar = st.progress(0)
     x=0
     while x <total_proposals:
-        proposal_id = olympus_governance_view_clean.iloc[x,2]
+        proposal_id = olympus_governance_view_clean.iloc[x,3]
 
         vote_tracker = snapshot.Query.votes(
         orderBy = 'created',
