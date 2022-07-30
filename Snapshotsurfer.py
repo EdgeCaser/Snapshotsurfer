@@ -28,7 +28,7 @@ st.markdown("""
 
 
 st.write('# Snapshot Surfer')
-st.write('### By @Edgecaser')
+st.write('## By @Edgecaser')
 
 st.markdown('<p class="bigger-font">This tool will help you view how decentralized a DAO\'s voting power is.</p>', unsafe_allow_html=True)
 
@@ -40,10 +40,21 @@ st.markdown('<p class="bigger-font"> When a few people hold a lot of voting powe
 
 st.markdown('<p class="bigger-font"> This tool helps illustrate how decentralized voting power is in any DAO in Snapshot It will pull down all proposals data and analyze the distribution of power. It will download the data to the folder of your choice </p>', unsafe_allow_html=True)
 
+
+
+st.write('### Instructions')
+
+st.markdown('<p class="bigger-font"> Trolls happen. Some DAOs are bombed with fake proposals that gather a handful of voters. This filter lets you ignore them in the analysis (but will be kept in the downloaded data). I find 20 is good enough for small DAOs. For larger DAOs I recommend values of 50 or more.</p>', unsafe_allow_html=True)
+
+filter = st.slider(
+    'Only choose proposals that had at least these many voters:',
+    int(0), 200, 20, 10)
+
 st.markdown(
-    '<p class="bigger-font">For example, OlympusDAO has a url like https://snapshot.org/#/olympusdao.eth. Therefore, write olympusdao.eth when queried to get its data.</p>',
+    '<p class="bigger-font">Enter the DAO you want to study below by entering its namespace in Snapshot. For example, OlympusDAO has a url like https://snapshot.org/#/olympusdao.eth. Its userspace is olympusdao.eth.</p>',
     unsafe_allow_html=True)
 st.write('')
+
 
 spacename = st.text_input('Where to pull from? Type your selection then press START',help='Which space, eg: curve.eth')
 
@@ -72,6 +83,7 @@ if st.button('START'):
     )
 
     st.write('Let\'s get started! Pulling from: ', spacename, ':sunglasses:')
+
 
     proposals_snapshots = sg.query_df([
         proposals.title,
@@ -215,33 +227,43 @@ if st.button('START'):
     )
 
     crunch_data = db.query("select "
-                               "votes_voter "
-                               ",votes_created" 
-                               ",votes_choice"
-                               ",votes_vp"  
-                               ",sum(votes_vp) over (order by votes_vp desc, votes_created asc) as cumulative_vp"
-                               ",sum(votes_vp) over (order by votes_vp desc, votes_created asc rows between unbounded preceding and unbounded following) as total_vp"
-                               ",(votes_vp::decimal/sum(votes_vp::decimal) over (order by votes_vp desc, votes_created asc , votes_created asc rows between unbounded preceding and unbounded following)) as percentage_of_total_vp "
-                               ",((sum(votes_vp) over (order by votes_vp desc, votes_created asc))::decimal/sum(votes_vp::decimal) over (order by votes_vp desc rows between unbounded preceding and unbounded following)) as cum_percentage_of_total_vp "
-                           ",round((sum(votes_vp) over (order by votes_vp desc, votes_created asc))::decimal/sum(votes_vp::decimal) over (order by votes_vp desc rows between unbounded preceding and unbounded following)) as cum_percentange_of_total_vp_stepped "
-                               ",row_number() over (order by votes_vp desc, votes_created asc) as proposal_voter_rank "
-                               ",count(votes_voter) over (order by votes_vp, votes_created asc rows between unbounded preceding and unbounded following) total_voters "
-                               ",(count(*) over (order by votes_vp desc, votes_created asc))::decimal/(count(*) over (order by votes_vp rows between unbounded preceding and unbounded following))::decimal percentage_voters_counted "
-                               ",round(100*(count(*) over (order by votes_vp desc, votes_created asc))::decimal/(count(*) over (order by votes_vp rows between unbounded preceding and unbounded following)))::decimal percentage_voters_counted_stepped "
-                           
-                           "from "
-                           "    voting_snapshots_list  "
-                           ""
-                           "Group by "
-                           "    votes_voter"
-                               ",votes_created" 
-                           "    ,votes_choice"
-                           "    , votes_vp " 
-                           ""
-                           "Order by "
-                           "    votes_vp desc "
-                           "    , votes_created asc"
-                           "").df()
+                           "Proposal"
+                           ",votes_voter "
+                           ",votes_choice"
+                           ",votes_vp"
+                           ",votes_created"
+                           ",sum(votes_vp) over (Partition by Proposal  order by votes_vp desc, votes_created asc) as cumulative_vp"
+                           ",sum(votes_vp) over (Partition by Proposal) as total_vp"
+                           ",(votes_vp::decimal/sum(votes_vp::decimal) over (Partition by Proposal)) as percentange_of_total_vp "
+                           ",((sum(votes_vp) over (Partition by Proposal  order by votes_vp desc, votes_created asc))::decimal/sum(votes_vp::decimal) over (Partition by Proposal)) as cum_percentage_of_total_vp "
+                           ",round((sum(votes_vp) over (Partition by Proposal  order by votes_vp desc, votes_created asc))::decimal/sum(votes_vp::decimal) over (Partition by Proposal)) as cum_percentage_of_total_vp_stepped "
+                           ",row_number() over (Partition by Proposal order by votes_vp desc, votes_created asc) as proposal_voter_rank "
+                           ",count(votes_voter) over (Partition by Proposal  order by votes_vp desc, votes_created asc) total_voters "
+                           ",(count(*) over (Partition by Proposal  order by votes_vp desc, votes_created asc))::decimal/(count(*) over (Partition by Proposal))::decimal percentage_voters_counted "
+                           ",round(100*(count(*) over (Partition by Proposal  order by votes_vp desc, votes_created asc))::decimal/(count(*) over (Partition by Proposal)))::decimal percentage_voters_counted_stepped "
+                       "from "
+                       "    governance_data  "
+                       ""
+                       "Group by "
+                       "    Proposal"
+                       "    ,votes_voter"
+                       "    ,votes_choice"
+                       "    , votes_vp "
+                       "    , votes_created "
+                       ""
+                       "Order by "
+                       "    Proposal, "
+                       "    votes_vp desc "
+                       "    , votes_created asc"                           ""
+                       "").df()
+
+
+
+    max_voters = crunch_data['total_voters'].max()
+
+
+    crunch_data = crunch_data.loc[crunch_data['total_voters']>filter]
+
     crunch_data.insert(0, 'DAO', spacename)
     crunch_data.head(n=10)
 
@@ -253,7 +275,6 @@ if st.button('START'):
     def convert_df(df):
         return df.to_csv().encode('utf-8')
     csv = convert_df(crunch_data)
-
     st.download_button(
         "Press to download Stats data",
         csv,
@@ -271,7 +292,7 @@ if st.button('START'):
     plt.rc("figure", figsize=(40, 20))
     sns.set_style("whitegrid")
     plt.rc("font", size=18)
-    data_means = crunch_data.groupby("percentage_voters_counted_stepped")["cum_percentage_of_total_vp","percentage_voters_counted"].agg("mean").reset_index()
+    data_means = crunch_data.groupby("percentage_voters_counted_stepped")["cum_percentage_of_total_vp","percentage_voters_counted","cum_percentage_of_total_vp_stepped"].agg("mean").reset_index()
     ##print(data_means)
     plot_title = spacename + ' snapshots % of vote along population'
 
@@ -306,7 +327,7 @@ if st.button('START'):
     ax = sns.scatterplot(data=crunch_data, y="cum_percentage_of_total_vp", x="percentage_voters_counted_stepped").set(
         title=plot_title, xlabel='% of voters', ylabel='% of voting power')
     chart = sns.scatterplot(data=data_means, x="percentage_voters_counted_stepped", y="cum_percentage_of_total_vp",
-                            zorder=3, s=400, marker='X', color='orange')
+                            zorder=3, s=300, marker='X', color='orange')
     # and save the chart file, too
     #plt.savefig(final_file + '\\' + spacename + ' vote power distribution.png', dpi=50)
     #st.write('Chart Saved')
