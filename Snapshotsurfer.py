@@ -4,6 +4,7 @@ from datetime import datetime
 from datetime import date
 from subgrounds.subgraph import SyntheticField, FieldPath
 from subgrounds.subgrounds import Subgrounds
+
 import pandas as pd
 import duckdb as db
 import seaborn as sns
@@ -24,6 +25,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.write('# Snapshot Surfer')
+st.write('### By @Edgecaser')
+
 st.markdown('<p class="bigger-font">This tool will help you view how decentralized a DAO\'s voting power is.</p>', unsafe_allow_html=True)
 
 st.markdown('<p class="bigger-font">Some DAOs voting power has a 1:1 correlation with their token holdings. Others use different schemes that distribute voting power in different ways, all the way down to one-wallet-one-vote. </p>', unsafe_allow_html=True)

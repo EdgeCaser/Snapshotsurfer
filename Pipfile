@@ -11,6 +11,7 @@ pandas = "*"
 duckdb = "*"
 seaborn = "*"
 matplotlib = "*"
+subgrounds.subgrounds = "*"
 
 [dev-packages]
 
