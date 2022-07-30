@@ -32,6 +32,8 @@ st.write('### By @Edgecaser')
 
 st.markdown('<p class="bigger-font">This tool will help you view how decentralized a DAO\'s voting power is.</p>', unsafe_allow_html=True)
 
+st.markdown('<p class="bigger-font">DAO stands for Decentralized Autonomous Organization, a bottoms-up team or organization. These are run by votes recorded on the Blockchain.</p>', unsafe_allow_html=True)
+
 st.markdown('<p class="bigger-font">Some DAOs voting power has a 1:1 correlation with their token holdings. Others use different schemes that distribute voting power in different ways, all the way down to one-wallet-one-vote. </p>', unsafe_allow_html=True)
 
 st.markdown('<p class="bigger-font"> When a few people hold a lot of voting power, a small minority drives the result of any proposal on Snapshot. This is not good or bad. There\'s examples of successful organizations with all kinds of power distribution schemes.</p>', unsafe_allow_html=True)
@@ -134,11 +136,7 @@ if len(spacename)>1:
         vote_tracker.vp
     ])
 
-    st.write('sample output: voting snapshots',voting_snapshots_list.head(10))
-
-
     st.write('Pulling vote records...')
-
     mybar = st.progress(0)
     x=0
     while x <total_proposals:
@@ -169,13 +167,15 @@ if len(spacename)>1:
         ##clear_output(wait=True)
         mybar.progress(chartprogress)
 
+    st.write('Sample output: Vote records',voting_snapshots_list.head(10))
+
     @st.cache
     def convert_df(df):
         return df.to_csv().encode('utf-8')
     csv = convert_df(voting_snapshots_list)
 
     st.download_button(
-        "Press to download voting records",
+        "Press to download vote records",
         csv,
         "voting_snapshots_list.csv",
         "text/csv",
@@ -187,7 +187,7 @@ if len(spacename)>1:
     #I join these two tables to create my charts as it makes life easier. We are going to build the charts here now, so here we go
     governance_data = pd.merge(voting_snapshots_list, olympus_governance_view_clean, how='inner', left_on='Proposal', right_on='proposals_id')
     del governance_data["proposals_body"]
-    st.write(governance_data.head(10))
+    st.write('sample output: governance data', governance_data.head(10))
 
     @st.cache
     def convert_df(df):
@@ -275,7 +275,7 @@ if len(spacename)>1:
     csv = convert_df(data_means)
 
     st.download_button(
-        "Press to download Stats data",
+        "Press to download Aggregated data",
         csv,
         "aggregated_data.csv",
         "text/csv",
@@ -305,7 +305,7 @@ if len(spacename)>1:
     st.pyplot(fig)
 
     st.markdown(
-        '<p class="bigger-font">All done. Enjoy!</p>',
+        '<p class="bigger-font">All done. Enjoy! Feel free to enter another space name to pull more data.</p>',
         unsafe_allow_html=True)
     # The chart above shows what % of all possible votes has been cast (Y axis) as each incremental percent of the voting population casts their vote (X axis). Each line is a Proposal and has a unique color, so that a dot on each percent point represents what % of total voting power was accumulated by that group. The color represents which vote was cast.
     # The Orange X shows the average % of power accumulated across all elections.
