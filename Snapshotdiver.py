@@ -47,7 +47,7 @@ st.write('')
 
 spacename = st.text_input('Where to pull from? Type your selection then press START',help='Which space, eg: curve.eth')
 
-if st.button('START'):
+if len(spacename)>=3:
 
     sg = Subgrounds()
     snapshot = sg.load_api('https://hub.snapshot.org/graphql')
@@ -198,7 +198,6 @@ if st.button('START'):
             return df.to_csv().encode('utf-8')
 
 
-        #NOTE: CAN YOU JOIN SO YUOU CAN GET THE TEXT OF THE CHOICE?
         crunch_data = db.query("select " 
                                    "votes_voter "
                                    ",votes_created"
