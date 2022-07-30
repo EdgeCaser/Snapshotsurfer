@@ -109,10 +109,8 @@ if st.button('START'):
 
     choice = ''
 
-    choice = (st.selectbox('Select Proposal',snapshots,1))
+    choice = (st.selectbox('Select Proposal and press START',snapshots,1))
     choiceOG = choice
-
-
 
     if len(choice)>3:
         #st.write(choice)
@@ -231,6 +229,12 @@ if st.button('START'):
                                "    , votes_created asc"
                                "").df()
         crunch_data.insert(0, 'DAO', spacename)
+
+        crunch_data.head(n=10)
+
+
+
+
         crunch_data.head(n=10)
 
         st.write('Sample voting records',crunch_data)
