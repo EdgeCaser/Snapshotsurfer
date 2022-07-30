@@ -123,14 +123,17 @@ if len(spacename)>1:
     proposal_id = olympus_governance_view_clean.iloc[0,2]
     #proposal_id
 
+    #st.write("HIYA - just checking")
+
     vote_tracker = snapshot.Query.votes(
-    orderBy = 'created',
-    orderDirection='desc',
-    first=10000,
-    where=[
-      snapshot.Vote.proposal == proposal_id
-    ]
+        orderBy='created',
+        orderDirection='desc',
+        first=10000,
+        where=[
+            snapshot.Vote.proposal == proposal_id
+        ]
     )
+    #st.write("HIYA2 - just checking")
 
     voting_snapshots_list = sg.query_df([
         vote_tracker.id,
@@ -140,12 +143,15 @@ if len(spacename)>1:
         vote_tracker.vp
     ])
 
+    st.write("HIYA3 - just checking")
+
     st.write('Pulling vote records...')
     mybar = st.progress(0)
     x=0
+
     while x <total_proposals:
         proposal_id = olympus_governance_view_clean.iloc[x,3]
-
+        #st.write(proposal_id)
         vote_tracker = snapshot.Query.votes(
         orderBy = 'created',
         orderDirection='desc',
@@ -154,6 +160,7 @@ if len(spacename)>1:
           snapshot.Vote.proposal == proposal_id
         ]
         )
+
         voting_snapshots = sg.query_df([
         vote_tracker.id,
         vote_tracker.voter,
@@ -208,32 +215,30 @@ if len(spacename)>1:
     )
 
     crunch_data = db.query("select "
-                               "Proposal"
-                               ",votes_voter "
+                               "votes_voter "
+                               ",votes_created" 
                                ",votes_choice"
-                               ",votes_vp"
-                               ",votes_created"
-                               ",sum(votes_vp) over (Partition by Proposal  order by votes_vp desc, votes_created asc) as cumulative_vp"
-                               ",sum(votes_vp) over (Partition by Proposal) as total_vp"
-                               ",(votes_vp::decimal/sum(votes_vp::decimal) over (Partition by Proposal)) as percentange_of_total_vp "
-                               ",((sum(votes_vp) over (Partition by Proposal  order by votes_vp desc, votes_created asc))::decimal/sum(votes_vp::decimal) over (Partition by Proposal)) as cum_percentage_of_total_vp "
-                           ",round((sum(votes_vp) over (Partition by Proposal  order by votes_vp desc, votes_created asc))::decimal/sum(votes_vp::decimal) over (Partition by Proposal)) as cum_percentange_of_total_vp_stepped "
-                               ",row_number() over (Partition by Proposal order by votes_vp desc, votes_created asc) as proposal_voter_rank "
-                               ",count(votes_voter) over (Partition by Proposal  order by votes_vp desc, votes_created asc) voters_counted "
-                               ",(count(*) over (Partition by Proposal  order by votes_vp desc, votes_created asc))::decimal/(count(*) over (Partition by Proposal))::decimal percentage_voters_counted "
-                               ",round(100*(count(*) over (Partition by Proposal  order by votes_vp desc, votes_created asc))::decimal/(count(*) over (Partition by Proposal)))::decimal percentage_voters_counted_stepped "
+                               ",votes_vp"  
+                               ",sum(votes_vp) over (order by votes_vp desc, votes_created asc) as cumulative_vp"
+                               ",sum(votes_vp) over (order by votes_vp desc, votes_created asc rows between unbounded preceding and unbounded following) as total_vp"
+                               ",(votes_vp::decimal/sum(votes_vp::decimal) over (order by votes_vp desc, votes_created asc , votes_created asc rows between unbounded preceding and unbounded following)) as percentage_of_total_vp "
+                               ",((sum(votes_vp) over (order by votes_vp desc, votes_created asc))::decimal/sum(votes_vp::decimal) over (order by votes_vp desc rows between unbounded preceding and unbounded following)) as cum_percentage_of_total_vp "
+                           ",round((sum(votes_vp) over (order by votes_vp desc, votes_created asc))::decimal/sum(votes_vp::decimal) over (order by votes_vp desc rows between unbounded preceding and unbounded following)) as cum_percentange_of_total_vp_stepped "
+                               ",row_number() over (order by votes_vp desc, votes_created asc) as proposal_voter_rank "
+                               ",count(votes_voter) over (order by votes_vp, votes_created asc rows between unbounded preceding and unbounded following) total_voters "
+                               ",(count(*) over (order by votes_vp desc, votes_created asc))::decimal/(count(*) over (order by votes_vp rows between unbounded preceding and unbounded following))::decimal percentage_voters_counted "
+                               ",round(100*(count(*) over (order by votes_vp desc, votes_created asc))::decimal/(count(*) over (order by votes_vp rows between unbounded preceding and unbounded following)))::decimal percentage_voters_counted_stepped "
+                           
                            "from "
-                           "    governance_data  "
+                           "    voting_snapshots_list  "
                            ""
                            "Group by "
-                           "    Proposal"
-                           "    ,votes_voter"
+                           "    votes_voter"
+                               ",votes_created" 
                            "    ,votes_choice"
-                           "    , votes_vp "
-                           "    , votes_created "
+                           "    , votes_vp " 
                            ""
                            "Order by "
-                           "    Proposal, "
                            "    votes_vp desc "
                            "    , votes_created asc"
                            "").df()

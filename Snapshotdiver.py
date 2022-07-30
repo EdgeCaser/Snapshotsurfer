@@ -43,9 +43,9 @@ st.markdown(
 st.write('')
 
 
-spacename = st.text_input('Where to pull from? Type your selection then press START',help='Which space, eg: curve.eth')
+spacename = st.text_input('Where to pull from?',help='Which space, eg: curve.eth')
 
-if st.button('START'):
+if len(spacename)>1:
 
     sg = Subgrounds()
     snapshot = sg.load_api('https://hub.snapshot.org/graphql')
