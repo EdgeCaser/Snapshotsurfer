@@ -96,179 +96,183 @@ if len(spacename)>1:
     snapshots = db.query("select distinct proposals_title, proposals_body from dao_governance_view_clean  ").df()
     #st.write(snapshots.head(10))
 
+    choice = ''
+
     choice = (st.selectbox('Select Proposal',snapshots,1))
+    choiceOG = choice
 
-    #st.write(choice)
+    if len(choice)>3:
+        #st.write(choice)
 
-    choicedf = pd.DataFrame(columns=['proposals_title'])
+        choicedf = pd.DataFrame(columns=['proposals_title'])
 
-    #st.write(choicedf)
-
-
-    row = pd.DataFrame({'proposals_title': [choice]})
-
-    #st.write(row)
-
-    choice = choicedf.append(row,ignore_index=True)
-
-    # st.write(choice)
-
-    propid = db.query("select distinct dao_governance_view_clean.proposals_id from dao_governance_view_clean join choice on dao_governance_view_clean.proposals_title = choice.proposals_title").df()
-
-    proposal_id=propid.iloc[0,0]
-
-    vote_tracker = snapshot.Query.votes(
-        orderBy='created',
-        orderDirection='desc',
-        first=10000,
-        where=[
-            snapshot.Vote.proposal == proposal_id
-        ]
-    )
-
-    voting_snapshots_list = sg.query_df([
-        vote_tracker.id,
-        vote_tracker.voter,
-        vote_tracker.created,
-        vote_tracker.choice,
-        vote_tracker.vp
-    ])
+        #st.write(choicedf)
 
 
-    st.write('Sample vote records:', voting_snapshots_list)
+        row = pd.DataFrame({'proposals_title': [choice]})
 
-    @st.cache
-    def convert_df(df):
-        return df.to_csv().encode('utf-8')
+        #st.write(row)
 
+        choice = choicedf.append(row,ignore_index=True)
 
-    csv = convert_df(voting_snapshots_list)
+        # st.write(choice)
 
-    st.download_button(
-        "Press to download vote records",
-        csv,
-        "aggregated_data.csv",
-        "text/csv",
-        key='download-csv'
-    )
+        propid = db.query("select distinct dao_governance_view_clean.proposals_id from dao_governance_view_clean join choice on dao_governance_view_clean.proposals_title = choice.proposals_title").df()
 
-    #NOTE: CAN YOU JOIN SO YUOU CAN GET THE TEXT OF THE CHOICE?
-    crunch_data = db.query("select " 
-                               "votes_voter "
-                               ",votes_choice"
-                               ",votes_vp"
-                               ",votes_created"
-                               ",sum(votes_vp) over (order by votes_vp desc, votes_created asc) as cumulative_vp"
-                               ",sum(votes_vp) over (order by votes_vp desc, votes_created asc rows between unbounded preceding and unbounded following) as total_vp"
-                               ",(votes_vp::decimal/sum(votes_vp::decimal) over (order by votes_vp desc, votes_created asc , votes_created asc rows between unbounded preceding and unbounded following)) as percentage_of_total_vp "
-                               ",((sum(votes_vp) over (order by votes_vp desc, votes_created asc))::decimal/sum(votes_vp::decimal) over (order by votes_vp desc rows between unbounded preceding and unbounded following)) as cum_percentage_of_total_vp "
-                           ",round((sum(votes_vp) over (order by votes_vp desc, votes_created asc))::decimal/sum(votes_vp::decimal) over (order by votes_vp desc rows between unbounded preceding and unbounded following)) as cum_percentange_of_total_vp_stepped "
-                               ",row_number() over (order by votes_vp desc, votes_created asc) as proposal_voter_rank "
-                               ",count(votes_voter) over (order by votes_vp, votes_created asc rows between unbounded preceding and unbounded following) total_voters "
-                               ",(count(*) over (order by votes_vp desc, votes_created asc))::decimal/(count(*) over (order by votes_vp rows between unbounded preceding and unbounded following))::decimal percentage_voters_counted "
-                               ",round(100*(count(*) over (order by votes_vp desc, votes_created asc))::decimal/(count(*) over (order by votes_vp rows between unbounded preceding and unbounded following)))::decimal percentage_voters_counted_stepped "
-                           
-                           "from "
-                           "    voting_snapshots_list  "
-                           ""
-                           "Group by "
-                           "    votes_voter"
-                           "    ,votes_choice"
-                           "    , votes_vp "
-                           "    , votes_created "
-                           ""
-                           "Order by "
-                           "    votes_vp desc "
-                           "    , votes_created asc"
-                           "").df()
-    crunch_data.insert(0, 'DAO', spacename)
-    crunch_data.head(n=10)
+        proposal_id=propid.iloc[0,0]
 
-    st.write('Sample voting records',crunch_data)
+        vote_tracker = snapshot.Query.votes(
+            orderBy='created',
+            orderDirection='desc',
+            first=10000,
+            where=[
+                snapshot.Vote.proposal == proposal_id
+            ]
+        )
+
+        voting_snapshots_list = sg.query_df([
+            vote_tracker.id,
+            vote_tracker.voter,
+            vote_tracker.created,
+            vote_tracker.choice,
+            vote_tracker.vp
+        ])
 
 
-    @st.cache
-    def convert_df(df):
-        return df.to_csv().encode('utf-8')
+        st.write('Sample vote records:', voting_snapshots_list)
+
+        @st.cache
+        def convert_df(df):
+            return df.to_csv().encode('utf-8')
 
 
-    csv = convert_df(crunch_data)
+        csv = convert_df(voting_snapshots_list)
 
-    st.download_button(
-        "Press to download Stats data",
-        csv,
-        "aggregated_data.csv",
-        "text/csv",
-        key='download-csv'
-    )
+        st.download_button(
+            "Press to download vote records",
+            csv,
+            "aggregated_data.csv",
+            "text/csv",
+            key='download-csv'
+        )
 
-    st.write('Sample Aggregate data')
+        #NOTE: CAN YOU JOIN SO YUOU CAN GET THE TEXT OF THE CHOICE?
+        crunch_data = db.query("select " 
+                                   "votes_voter "
+                                   ",votes_choice"
+                                   ",votes_vp"
+                                   ",votes_created"
+                                   ",sum(votes_vp) over (order by votes_vp desc, votes_created asc) as cumulative_vp"
+                                   ",sum(votes_vp) over (order by votes_vp desc, votes_created asc rows between unbounded preceding and unbounded following) as total_vp"
+                                   ",(votes_vp::decimal/sum(votes_vp::decimal) over (order by votes_vp desc, votes_created asc , votes_created asc rows between unbounded preceding and unbounded following)) as percentage_of_total_vp "
+                                   ",((sum(votes_vp) over (order by votes_vp desc, votes_created asc))::decimal/sum(votes_vp::decimal) over (order by votes_vp desc rows between unbounded preceding and unbounded following)) as cum_percentage_of_total_vp "
+                               ",round((sum(votes_vp) over (order by votes_vp desc, votes_created asc))::decimal/sum(votes_vp::decimal) over (order by votes_vp desc rows between unbounded preceding and unbounded following)) as cum_percentange_of_total_vp_stepped "
+                                   ",row_number() over (order by votes_vp desc, votes_created asc) as proposal_voter_rank "
+                                   ",count(votes_voter) over (order by votes_vp, votes_created asc rows between unbounded preceding and unbounded following) total_voters "
+                                   ",(count(*) over (order by votes_vp desc, votes_created asc))::decimal/(count(*) over (order by votes_vp rows between unbounded preceding and unbounded following))::decimal percentage_voters_counted "
+                                   ",round(100*(count(*) over (order by votes_vp desc, votes_created asc))::decimal/(count(*) over (order by votes_vp rows between unbounded preceding and unbounded following)))::decimal percentage_voters_counted_stepped "
+                               
+                               "from "
+                               "    voting_snapshots_list  "
+                               ""
+                               "Group by "
+                               "    votes_voter"
+                               "    ,votes_choice"
+                               "    , votes_vp "
+                               "    , votes_created "
+                               ""
+                               "Order by "
+                               "    votes_vp desc "
+                               "    , votes_created asc"
+                               "").df()
+        crunch_data.insert(0, 'DAO', spacename)
+        crunch_data.head(n=10)
 
-    fig = plt.figure(figsize=(20, 8))
-
-    plt.rc("figure", figsize=(40, 20))
-    sns.set_style("whitegrid")
-    plt.rc("font", size=18)
-    data_means = crunch_data.groupby("percentage_voters_counted_stepped")[
-        "cum_percentage_of_total_vp", "percentage_voters_counted"].agg("mean").reset_index()
-    ##print(data_means)
-    plot_title = spacename + ' snapshots % of vote along population'
-
-    st.write(data_means)
-
-
-    @st.cache
-    def convert_df(df):
-        return df.to_csv().encode('utf-8')
-
-
-    csv = convert_df(data_means)
-
-    st.download_button(
-        "Press to download Aggregated data",
-        csv,
-        "aggregated_data.csv",
-        "text/csv",
-        key='download-csv'
-    )
-
-    p50 = db.query("select min(percentage_voters_counted) "
-                   "from data_means  where cum_percentage_of_total_vp>=0.5 ").df()
-
-    p50display = round(100 * (p50.iloc[0, 0]), 2)
-
-    voters = db.query("select count(distinct votes_voter) from voting_snapshots_list").df()
-    voters = voters.iloc[0, 0]
-
-    #st.write(Voters)
-    st.write('### It took ', p50display, '% out of',voters ,' voters to accumulate half of the voting power.')
-
-    st.write('The chart below describes all proposals in', spacename,
-             '.The orange markers represent what percentage of the population it takes to reach a given percentage of voting power.')
-
-    # sns.lineplot(data=crunch_data, y="cum_percentage_of_total_vp",x="percentage_voters_counted_stepped", hue="Proposal",zorder=-3).set(title=plot_title,xlabel='% of voters',ylabel='% of voting power')#, legend=False)
-    ax = sns.lineplot(data=crunch_data, y="cum_percentage_of_total_vp", x="percentage_voters_counted_stepped").set(
-        title=plot_title, xlabel='% of voters', ylabel='% of voting power')
-    st.pyplot(fig)
-
-    chart_data=db.query("select votes_choice, sum(percentage_of_total_vp) as percentage_of_total_vp from crunch_data group by 1").df()
-
-    st.write(chart_data)
-
-    fig2 = plt.figure(figsize=(10, 4))
-
-    chart = sns.barplot(data=chart_data, y ="percentage_of_total_vp", x="votes_choice", hue= "votes_choice"  ).set(
-        title='vote results', xlabel='Choice', ylabel='% of voting power')
-    st.pyplot(fig2)
-
-    #$st.bar_chart(data=chart_data, use_container_width=True)
-
-    #st.altair_chart(chart_data, use_container_width=False).mark_arc()
+        st.write('Sample voting records',crunch_data)
 
 
-    st.markdown(
-        '<p class="bigger-font">All done. Enjoy! Feel free to enter another space name, or choose another snapshot from the drop-down menu, to pull more data.</p>',
-        unsafe_allow_html=True)
-    # The chart above shows what % of all possible votes has been cast (Y axis) as each incremental percent of the voting population casts their vote (X axis). Each line is a Proposal and has a unique color, so that a dot on each percent point represents what % of total voting power was accumulated by that group. The color represents which vote was cast.
-    # The Orange X shows the average % of power accumulated across all elections.
+        @st.cache
+        def convert_df(df):
+            return df.to_csv().encode('utf-8')
+
+
+        csv = convert_df(crunch_data)
+
+        st.download_button(
+            "Press to download Stats data",
+            csv,
+            "aggregated_data.csv",
+            "text/csv",
+            key='download-csv'
+        )
+
+        st.write('Sample Aggregate data')
+
+        fig = plt.figure(figsize=(20, 8))
+
+        plt.rc("figure", figsize=(40, 20))
+        sns.set_style("whitegrid")
+        plt.rc("font", size=18)
+        data_means = crunch_data.groupby("percentage_voters_counted_stepped")[
+            "cum_percentage_of_total_vp", "percentage_voters_counted"].agg("mean").reset_index()
+        ##print(data_means)
+        plot_title = spacename + ' snapshots % of vote along population'
+
+        st.write(data_means)
+
+
+        @st.cache
+        def convert_df(df):
+            return df.to_csv().encode('utf-8')
+
+
+        csv = convert_df(data_means)
+
+        st.download_button(
+            "Press to download Aggregated data",
+            csv,
+            "aggregated_data.csv",
+            "text/csv",
+            key='download-csv'
+        )
+
+        p50 = db.query("select min(percentage_voters_counted) "
+                       "from data_means  where cum_percentage_of_total_vp>=0.5 ").df()
+
+        p50display = round(100 * (p50.iloc[0, 0]), 2)
+
+        voters = db.query("select count(distinct votes_voter) from voting_snapshots_list").df()
+        voters = voters.iloc[0, 0]
+
+        #st.write(Voters)
+        st.write('### It took ', p50display, '% out of',voters ,' voters to accumulate half of the voting power in "',choiceOG, '".')
+
+        st.write('The chart below describes all proposals in', spacename,
+                 '.The orange markers represent what percentage of the population it takes to reach a given percentage of voting power.')
+
+        # sns.lineplot(data=crunch_data, y="cum_percentage_of_total_vp",x="percentage_voters_counted_stepped", hue="Proposal",zorder=-3).set(title=plot_title,xlabel='% of voters',ylabel='% of voting power')#, legend=False)
+        ax = sns.lineplot(data=crunch_data, y="cum_percentage_of_total_vp", x="percentage_voters_counted_stepped").set(
+            title=plot_title, xlabel='% of voters', ylabel='% of voting power')
+        st.pyplot(fig)
+
+        chart_data=db.query("select votes_choice, sum(percentage_of_total_vp) as percentage_of_total_vp from crunch_data group by 1").df()
+
+        st.write(chart_data)
+
+        fig2 = plt.figure(figsize=(10, 4))
+
+        chart = sns.barplot(data=chart_data, y ="percentage_of_total_vp", x="votes_choice", hue= "votes_choice"  ).set(
+            title=('Results: '+choiceOG), xlabel='Choice', ylabel='% of voting power')
+        st.pyplot(fig2)
+
+        #$st.bar_chart(data=chart_data, use_container_width=True)
+
+        #st.altair_chart(chart_data, use_container_width=False).mark_arc()
+
+
+        st.markdown(
+            '<p class="bigger-font">All done. Enjoy! Feel free to enter another space name, or choose another snapshot from the drop-down menu, to pull more data.</p>',
+            unsafe_allow_html=True)
+        # The chart above shows what % of all possible votes has been cast (Y axis) as each incremental percent of the voting population casts their vote (X axis). Each line is a Proposal and has a unique color, so that a dot on each percent point represents what % of total voting power was accumulated by that group. The color represents which vote was cast.
+        # The Orange X shows the average % of power accumulated across all elections.
 
