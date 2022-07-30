@@ -77,7 +77,7 @@ if st.button('START'):
     ])
 
 
-
+    #test
     proposals_choices = sg.query(proposals.choices)
 
     proposals_choices = pd.DataFrame(proposals_choices)

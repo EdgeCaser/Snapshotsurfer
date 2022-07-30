@@ -143,7 +143,7 @@ if st.button('START'):
         vote_tracker.vp
     ])
 
-    st.write("HIYA3 - just checking")
+    #st.write("HIYA3 - just checking")
 
     st.write('Pulling vote records...')
     mybar = st.progress(0)
