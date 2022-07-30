@@ -9,7 +9,7 @@ import pandas as pd
 import duckdb as db
 import seaborn as sns
 import matplotlib.pyplot as plt
-import streamlit
+import streamlit as st
 
 st.set_page_config(layout="wide")
 
