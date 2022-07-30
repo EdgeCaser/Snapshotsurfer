@@ -320,11 +320,3 @@ if len(spacename)>1:
             unsafe_allow_html=True)
         # The chart above shows what % of all possible votes has been cast (Y axis) as each incremental percent of the voting population casts their vote (X axis). Each line is a Proposal and has a unique color, so that a dot on each percent point represents what % of total voting power was accumulated by that group. The color represents which vote was cast.
         # The Orange X shows the average % of power accumulated across all elections.
-
-
-
-        options = dao_governance_view_clean
-
-        options.drop(options.columns[[0, 1, 2,3,4,5]], axis=1, inplace=True)
-
-        st.write(options)
