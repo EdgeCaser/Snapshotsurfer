@@ -13,9 +13,9 @@ duckdb = "*"
 seaborn = "*"
 matplotlib = "*"
 streamlit = "*"
-subgrounds = "*"
 
 [dev-packages]
+subgrounds = "*"
 
 [requires]
 python_version = "3.10"
