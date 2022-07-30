@@ -87,10 +87,8 @@ if len(spacename)>1:
     #remove duplicates
     dao_governance_view_clean = dao_governance_view.copy(deep=True)
 
-    dao_governance_view_clean = db.query("select  "
-                            "to_timestamp(proposals_created) as proposal_date"
-                                         ",*  " 
-                          "from dao_governance_view_clean order by proposals_created desc").df()
+    dao_governance_view_clean = db.query("select  to_timestamp(proposals_created) as proposal_date,*  "
+                                         "from dao_governance_view_clean order by proposals_created desc").df()
 
     dao_governance_view_clean.insert(0, 'DAO', spacename)
 
