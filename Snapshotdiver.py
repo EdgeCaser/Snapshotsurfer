@@ -1,3 +1,5 @@
+#Snapshot diver allows you to pull a single election's data from Snapshot. Bugs? Ping me on Twitter @edgecaser.
+
 from datetime import datetime
 from datetime import date
 from subgrounds.subgraph import SyntheticField, FieldPath

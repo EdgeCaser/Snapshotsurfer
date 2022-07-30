@@ -1,4 +1,4 @@
-##this script pulls data from a DAO within snapshot.org and shows its voting data
+#Snapshot diver allows you to look at a DAO's elections on snapshot to see how decentralized they are. Bugs? Ping me on Twitter @edgecaser.
 
 from datetime import datetime
 from datetime import date
