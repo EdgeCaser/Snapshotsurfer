@@ -72,8 +72,8 @@ if len(spacename)>1:
         proposals.title,
         proposals.id,
         proposals.body,
-        proposals.scores,
-        proposals.scores_total
+        proposals.scores_total,
+        proposals.created
     ])
 
 
@@ -86,20 +86,35 @@ if len(spacename)>1:
 
     #remove duplicates
     dao_governance_view_clean = dao_governance_view.copy(deep=True)
+
+    dao_governance_view_clean = db.query("select  "
+                            "to_timestamp(proposals_created) as proposal_date"
+                                         ",*  " 
+                          "from dao_governance_view_clean order by proposals_created desc").df()
+
     dao_governance_view_clean.insert(0, 'DAO', spacename)
 
     st.write('Directory of proposals available:',dao_governance_view_clean)
 
 
+    #st.write(snapshots.head(10))
+
+    shape = dao_governance_view_clean.shape
+    number_of_choices = shape[1]-6
+
+    number_of_columns = shape[1]
+
+    st.write('columns:',number_of_columns,' number of choices:', number_of_choices)
 
 
     snapshots = db.query("select distinct proposals_title, proposals_body from dao_governance_view_clean  ").df()
-    #st.write(snapshots.head(10))
 
     choice = ''
 
     choice = (st.selectbox('Select Proposal',snapshots,1))
     choiceOG = choice
+
+
 
     if len(choice)>3:
         #st.write(choice)
@@ -115,11 +130,14 @@ if len(spacename)>1:
 
         choice = choicedf.append(row,ignore_index=True)
 
-        # st.write(choice)
+        st.write(choice)
 
         propid = db.query("select distinct dao_governance_view_clean.proposals_id from dao_governance_view_clean join choice on dao_governance_view_clean.proposals_title = choice.proposals_title").df()
 
         proposal_id=propid.iloc[0,0]
+
+        row_data = db.query("select * from dao_governance_view_clean join choice on dao_governance_view_clean.proposals_title = choice.proposals_title").df()
+
 
         vote_tracker = snapshot.Query.votes(
             orderBy='created',
@@ -139,29 +157,57 @@ if len(spacename)>1:
         ])
 
 
-        st.write('Sample vote records:', voting_snapshots_list)
+        #generate a list of choices made per voter
+        options = dao_governance_view_clean
+        options.drop(options.columns[[0, 1, 2,3,4,5]], axis=1, inplace=True)
+
+        choice_list = db.query("select distinct votes_voter, votes_choice, votes_created from voting_snapshots_list order by votes_created desc").df()
+
+
+        # add an empty column for the choice text to choice_list
+        choice_list.insert(2, 'vote_text', '')
+
+        # now we add the actual body, row by row,  using the vote choice number as the lookup index in dao_governance_view_clean (accounting for the first 6 columns
+
+        shape = choice_list.shape
+        number_of_voters = shape[0]-1
+
+        st.write('total voters:', number_of_voters)
+
+        z = 0
+        while z<=number_of_voters:
+            choice_val = choice_list.iloc[z,1]
+            position = 6+ choice_val
+            choice_text = row_data.iloc[0,position]
+
+            choice_list.at[z,'vote_text']=choice_text
+            z=z+1
+
+
+        choice_table = db.query("select distinct votes_voter,votes_choice,vote_text from choice_list").df()
+
+        voting_snapshots_list = voting_snapshots_list.merge(choice_list, left_on=['votes_voter'], right_on=['votes_voter'], how='left')
+
+        voting_snapshots_list.rename(columns={'votes_created_x': 'votes_created', 'votes_choice_x': 'votes_choice'}, inplace=True)
+
+        voting_snapshots_list.drop(['votes_created_y','votes_choice_y'], axis=1)
+
+
+        #st.write('Sample vote records:', voting_snapshots_list)
 
         @st.cache
         def convert_df(df):
             return df.to_csv().encode('utf-8')
 
 
-        csv = convert_df(voting_snapshots_list)
-
-        st.download_button(
-            "Press to download vote records",
-            csv,
-            "aggregated_data.csv",
-            "text/csv",
-            key='download-csv'
-        )
-
         #NOTE: CAN YOU JOIN SO YUOU CAN GET THE TEXT OF THE CHOICE?
         crunch_data = db.query("select " 
                                    "votes_voter "
-                                   ",votes_choice"
-                                   ",votes_vp"
                                    ",votes_created"
+                                   ",to_timestamp(votes_created) vote_time"
+                                   ",votes_choice"
+                                   ",votes_vp" 
+                                   ",vote_text" 
                                    ",sum(votes_vp) over (order by votes_vp desc, votes_created asc) as cumulative_vp"
                                    ",sum(votes_vp) over (order by votes_vp desc, votes_created asc rows between unbounded preceding and unbounded following) as total_vp"
                                    ",(votes_vp::decimal/sum(votes_vp::decimal) over (order by votes_vp desc, votes_created asc , votes_created asc rows between unbounded preceding and unbounded following)) as percentage_of_total_vp "
@@ -179,7 +225,8 @@ if len(spacename)>1:
                                "    votes_voter"
                                "    ,votes_choice"
                                "    , votes_vp "
-                               "    , votes_created "
+                               "    , votes_created "  
+                               "    , vote_text "
                                ""
                                "Order by "
                                "    votes_vp desc "
@@ -255,13 +302,13 @@ if len(spacename)>1:
             title=plot_title, xlabel='% of voters', ylabel='% of voting power')
         st.pyplot(fig)
 
-        chart_data=db.query("select votes_choice, sum(percentage_of_total_vp) as percentage_of_total_vp from crunch_data group by 1").df()
+        chart_data=db.query("select vote_text, sum(percentage_of_total_vp) as percentage_of_total_vp from crunch_data group by 1").df()
 
         st.write(chart_data)
 
         fig2 = plt.figure(figsize=(10, 4))
 
-        chart = sns.barplot(data=chart_data, y ="percentage_of_total_vp", x="votes_choice", hue= "votes_choice"  ).set(
+        chart = sns.barplot(data=chart_data, y ="percentage_of_total_vp", x="vote_text", hue= "vote_text"  ).set(
             title=('Results: '+choiceOG), xlabel='Choice', ylabel='% of voting power')
         st.pyplot(fig2)
 
@@ -276,3 +323,10 @@ if len(spacename)>1:
         # The chart above shows what % of all possible votes has been cast (Y axis) as each incremental percent of the voting population casts their vote (X axis). Each line is a Proposal and has a unique color, so that a dot on each percent point represents what % of total voting power was accumulated by that group. The color represents which vote was cast.
         # The Orange X shows the average % of power accumulated across all elections.
 
+
+
+        options = dao_governance_view_clean
+
+        options.drop(options.columns[[0, 1, 2,3,4,5]], axis=1, inplace=True)
+
+        st.write(options)

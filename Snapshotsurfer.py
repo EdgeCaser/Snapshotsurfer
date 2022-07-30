@@ -77,7 +77,6 @@ if len(spacename)>1:
         proposals.title,
         proposals.id,
         proposals.body,
-        proposals.scores,
         proposals.scores_total
     ])
 
