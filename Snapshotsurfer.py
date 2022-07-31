@@ -322,7 +322,7 @@ if st.button('START'):
     p50display = round(100 * (p50.iloc[0, 0]), 2)
 
     st.write('### On average, a proposal at ', spacename, 'takes ', p50display,
-             '% of the voting population.')
+             '% of the voting population to accumulate half or more of all the votes.')
 
     st.write('The chart below describes all proposals in', spacename,'.The orange markers represent what percentage of the population it takes to reach a given percentage of voting power.')
 
