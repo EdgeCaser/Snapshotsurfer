@@ -34,6 +34,12 @@ st.markdown('<p class="bigger-font">DAO stands for Decentralized Autonomous Orga
 
 st.markdown('<p class="bigger-font">Some DAOs voting power has a 1:1 correlation with their token holdings. Others use different schemes that distribute voting power in different ways, all the way down to one-wallet-one-vote. </p>', unsafe_allow_html=True)
 
+
+st.markdown('<p class="bigger-font"> If you are interested in analyzing a DAO\'s governance power patterns across all its proposals, visit Snapshotsurfer </p>', unsafe_allow_html=True)
+st.markdown('[Snapshotsurfer](https://edgecaser-snapshotsurfer-snapshotsurfer-yyutu2.streamlitapp.com/)')
+
+
+#instructions
 st.markdown(
     '<p class="bigger-font">To use this tool, you will need to know the name space of the DAO you are looking for. For example, OlympusDAO has a url like https://snapshot.org/#/olympusdao.eth. Therefore, write olympusdao.eth when queried to get its data.</p>',
     unsafe_allow_html=True)

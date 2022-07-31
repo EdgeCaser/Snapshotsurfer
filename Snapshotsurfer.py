@@ -40,6 +40,9 @@ st.markdown('<p class="bigger-font"> When a few people hold a lot of voting powe
 
 st.markdown('<p class="bigger-font"> This tool helps illustrate how decentralized voting power is in any DAO in Snapshot It will pull down all proposals data and analyze the distribution of power. It will download the data to the folder of your choice </p>', unsafe_allow_html=True)
 
+st.markdown('<p class="bigger-font"> If you are interested in analyzing a single election in more detail, I recommend you visit Snapshotdiver </p>', unsafe_allow_html=True)
+st.markdown('[Snapshotdiver](https://edgecaser-snapshotsurfer-snapshotdiver-jilc2t.streamlitapp.com/)')
+
 
 
 st.write('### Instructions')
