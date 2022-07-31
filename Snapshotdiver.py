@@ -35,8 +35,8 @@ st.markdown('<p class="bigger-font">DAO stands for Decentralized Autonomous Orga
 st.markdown('<p class="bigger-font">Some DAOs voting power has a 1:1 correlation with their token holdings. Others use different schemes that distribute voting power in different ways, all the way down to one-wallet-one-vote. </p>', unsafe_allow_html=True)
 
 
-st.markdown('<p class="bigger-font"> If you are interested in analyzing a DAO\'s governance power patterns across all its proposals, visit Snapshotsurfer </p>', unsafe_allow_html=True)
-st.markdown('[Snapshotsurfer](https://edgecaser-snapshotsurfer-snapshotsurfer-yyutu2.streamlitapp.com/)')
+st.markdown('<p class="bigger-font"> If you are interested in analyzing a DAO\'s governance power patterns across all its proposals, visit Snapshot Surfer </p>', unsafe_allow_html=True)
+st.markdown('[Snapshot Surfer](https://edgecaser-snapshotsurfer-snapshotsurfer-yyutu2.streamlitapp.com/)')
 
 
 #instructions
