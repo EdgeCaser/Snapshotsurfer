@@ -354,6 +354,7 @@ if st.button('START'):
     sns.set_style("whitegrid")
     plt.rc("font", size=18)
     data_means = crunch_data.groupby("percentage_voters_counted_stepped")["cum_percentage_of_total_vp","percentage_voters_counted","cum_percentage_of_total_vp_stepped"].agg("mean").reset_index()
+    data_means.insert(0, 'DAO', spacename)
     ##print(data_means)
     plot_title = spacename + ' snapshots % of vote along population'
 
