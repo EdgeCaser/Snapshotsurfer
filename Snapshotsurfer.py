@@ -54,7 +54,7 @@ filter = st.slider(
     int(0), 200, 20, 10)
 
 st.markdown(
-    '<p class="bigger-font">Enter the DAO you want to study below by entering its namespace in Snapshot. For example, OlympusDAO has a url like https://snapshot.org/#/olympusdao.eth. Its userspace is olympusdao.eth.</p>',
+    '<p class="bigger-font">Enter the DAO you want to study below by entering its namespace in Snapshot. For example, OlympusDAO has a url like https://snapshot.org/#/olympusdao.eth so its userspace is olympusdao.eth.</p>',
     unsafe_allow_html=True)
 st.write('')
 
@@ -220,6 +220,7 @@ if st.button('START'):
         return df.to_csv().encode('utf-8')
 
     csv = convert_df(governance_data)
+
     st.download_button(
         "Press to download joined governance data",
         csv,
@@ -243,50 +244,93 @@ if st.button('START'):
                            ",count(votes_voter) over (Partition by Proposal  order by votes_vp desc, votes_created asc) total_voters "
                            ",(count(*) over (Partition by Proposal  order by votes_vp desc, votes_created asc))::decimal/(count(*) over (Partition by Proposal))::decimal percentage_voters_counted "
                            ",round(100*(count(*) over (Partition by Proposal  order by votes_vp desc, votes_created asc))::decimal/(count(*) over (Partition by Proposal)))::decimal percentage_voters_counted_stepped "
-                       "from "
-                       "    governance_data  "
-                       ""
-                       "Group by "
-                       "    Proposal"
-                       "    ,votes_voter"
-                       "    ,votes_choice"
-                       "    , votes_vp "
-                       "    , votes_created "
-                       ""
-                       "Order by "
-                       "    Proposal, "
-                       "    votes_vp desc "
-                       "    , votes_created asc"                           ""
-                       "").df()
+                           "from "
+                           "    governance_data  "
+                           ""
+                           "Group by "
+                           "    Proposal"
+                           "    ,votes_voter"
+                           "    ,votes_choice"
+                           "    , votes_vp "
+                           "    , votes_created "
+                           ""
+                           "Order by "
+                           "    Proposal, "
+                           "    votes_vp desc "
+                           "    , votes_created asc"                           
+                           "").df()
 
-
-
-
-
-    crunch_data = crunch_data.loc[crunch_data['total_voters']>filter]
 
     crunch_data.insert(0, 'DAO', spacename)
     crunch_data.head(n=10)
+
+    #leaders = crunch_data.loc[crunch_data['proposal_voter_rank'] <= 3]
+    #leader_count = leaders.votes_voter.nunique()
+
+    leader_ranks = db.query("with leader_ranks as "
+                            "(Select distinct "
+                            "   B.Proposal"
+                            "   ,B.votes_voter"
+                            "   ,B.proposal_voter_rank "
+                            "   ,(B.proposal_voter_rank +1) as leader_rank "
+                            "From "
+                            "   (select "
+                                    "Proposal"
+                                    ",votes_voter "
+                                    ",votes_choice"
+                                    ",votes_vp"
+                                    ",votes_created"
+                                    ",sum(votes_vp) over (Partition by Proposal  order by votes_vp desc, votes_created asc) as cumulative_vp"
+                                    ",sum(votes_vp) over (Partition by Proposal) as total_vp"
+                                    ",(votes_vp::decimal/sum(votes_vp::decimal) over (Partition by Proposal)) as percentage_of_total_vp "
+                                    ",((sum(votes_vp) over (Partition by Proposal  order by votes_vp desc, votes_created asc))::decimal/sum(votes_vp::decimal) over (Partition by Proposal)) as cum_percentage_of_total_vp "
+                                    "    ,round((sum(votes_vp) over (Partition by Proposal  order by votes_vp desc, votes_created asc))::decimal/sum(votes_vp::decimal) over (Partition by Proposal)) as cum_percentage_of_total_vp_stepped "
+                                    ",row_number() over (Partition by Proposal order by votes_vp desc, votes_created asc) as proposal_voter_rank "
+                                    ",count(votes_voter) over (Partition by Proposal  order by votes_vp desc, votes_created asc) total_voters "
+                                    ",(count(*) over (Partition by Proposal  order by votes_vp desc, votes_created asc))::decimal/(count(*) over (Partition by Proposal))::decimal percentage_voters_counted "
+                                    ",round(100*(count(*) over (Partition by Proposal  order by votes_vp desc, votes_created asc))::decimal/(count(*) over (Partition by Proposal)))::decimal percentage_voters_counted_stepped "
+                                "from "
+                                "    governance_data  "
+                                ""
+                                "Group by "
+                                "    Proposal"
+                                "    ,votes_voter"
+                                "    ,votes_choice"
+                                "    , votes_vp "
+                                "    , votes_created "
+                                ""
+                                "Order by "
+                                "    Proposal, "
+                                "    votes_vp desc "
+                                "    , votes_created asc) B "
+                                "where "
+                                "   B.cum_percentage_of_total_vp<=0.5) "
+                            ""
+                            "Select "
+                            "   *"
+                            "From crunch_data A"
+                            "   Join leader_ranks B on A.proposal_voter_rank = B.leader_rank and A.Proposal = B.Proposal"
+                            ""
+                            ).df()
+    #st.write(leader_ranks)
+
+
+    leader_count =leader_ranks.votes_voter.nunique()
+
+    #st.write(leader_count)
+    dao_members = crunch_data.groupby('DAO').votes_voter.nunique()
+    dao_members = dao_members.iloc[0]
+    leader_count = leader_ranks.votes_voter.nunique()
+    elite = round((leader_count) / (dao_members), 4)
+
+    #$print(dao_members, "{0:.2%}".format(elite))
 
     st.write('Sample Stats data')
     st.write(crunch_data.head(10))
     ##spit out the file!
 
-    max_voters = crunch_data['total_voters'].max()
-    st.write(max_voters, 'max_count')
 
-    leaders = crunch_data.loc[crunch_data['percentange_of_total_vp'] >= 0.25]
-    leader_count = leaders.votes_voter.nunique()
-
-    st.write(leader_count, 'leaders')
-
-
-    dao_members = crunch_data.groupby('DAO').votes_voter.nunique()
-    dao_members = dao_members.iloc[0]
-
-    elite = round((leader_count) / (max_voters), 4)
-
-
+    crunch_data = crunch_data.loc[crunch_data['total_voters']>filter]
 
     @st.cache
     def convert_df(df):
@@ -338,10 +382,10 @@ if st.button('START'):
     st.write('### On average, a proposal at ', spacename, 'takes ', p50display,
              '% of the voting population to accumulate half or more of all the votes.')
 
-    st.write('### A total of ', leader_count, 'has driven the result of all proposals at', spacename, )
-    st.write('### That\'s', ("{0:.2%}".format(elite)), 'of all DAO voters.')
+    st.write('### A total of ', leader_count, 'addresses have driven the result of all proposals at', spacename,'.')
+    st.write('### That\'s', ("{0:.2%}".format(elite)), 'of all voters the DAO has ever had.')
 
-    st.write('### The chart below describes all proposals in', spacename,'.The orange markers represent what percentage of the population it takes to reach a given percentage of voting power.')
+    st.write('The chart below describes all proposals in', spacename,'.The orange markers represent what percentage of the population it takes to reach a given percentage of voting power.')
 
     #sns.lineplot(data=crunch_data, y="cum_percentage_of_total_vp",x="percentage_voters_counted_stepped", hue="Proposal",zorder=-3).set(title=plot_title,xlabel='% of voters',ylabel='% of voting power')#, legend=False)
     ax = sns.scatterplot(data=crunch_data, y="cum_percentage_of_total_vp", x="percentage_voters_counted_stepped").set(
