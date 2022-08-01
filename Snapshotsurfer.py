@@ -220,7 +220,6 @@ if st.button('START'):
         return df.to_csv().encode('utf-8')
 
     csv = convert_df(governance_data)
-
     st.download_button(
         "Press to download joined governance data",
         csv,
@@ -262,7 +261,6 @@ if st.button('START'):
 
 
 
-    max_voters = crunch_data['total_voters'].max()
 
 
     crunch_data = crunch_data.loc[crunch_data['total_voters']>filter]
@@ -273,6 +271,22 @@ if st.button('START'):
     st.write('Sample Stats data')
     st.write(crunch_data.head(10))
     ##spit out the file!
+
+    max_voters = crunch_data['total_voters'].max()
+    st.write(max_voters, 'max_count')
+
+    leaders = crunch_data.loc[crunch_data['percentange_of_total_vp'] >= 0.25]
+    leader_count = leaders.votes_voter.nunique()
+
+    st.write(leader_count, 'leaders')
+
+
+    dao_members = crunch_data.groupby('DAO').votes_voter.nunique()
+    dao_members = dao_members.iloc[0]
+
+    elite = round((leader_count) / (max_voters), 4)
+
+
 
     @st.cache
     def convert_df(df):
@@ -324,7 +338,10 @@ if st.button('START'):
     st.write('### On average, a proposal at ', spacename, 'takes ', p50display,
              '% of the voting population to accumulate half or more of all the votes.')
 
-    st.write('The chart below describes all proposals in', spacename,'.The orange markers represent what percentage of the population it takes to reach a given percentage of voting power.')
+    st.write('### A total of ', leader_count, 'has driven the result of all proposals at', spacename, )
+    st.write('### That\'s', ("{0:.2%}".format(elite)), 'of all DAO voters.')
+
+    st.write('### The chart below describes all proposals in', spacename,'.The orange markers represent what percentage of the population it takes to reach a given percentage of voting power.')
 
     #sns.lineplot(data=crunch_data, y="cum_percentage_of_total_vp",x="percentage_voters_counted_stepped", hue="Proposal",zorder=-3).set(title=plot_title,xlabel='% of voters',ylabel='% of voting power')#, legend=False)
     ax = sns.scatterplot(data=crunch_data, y="cum_percentage_of_total_vp", x="percentage_voters_counted_stepped").set(
