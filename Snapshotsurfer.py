@@ -208,7 +208,7 @@ if st.button('START'):
         key='download-csv'
     )
 
-
+    governance_data  = pd.DataFrame()
 
     #I join these two tables to create my charts as it makes life easier. We are going to build the charts here now, so here we go
     governance_data = pd.merge(voting_snapshots_list, olympus_governance_view_clean, how='inner', left_on='Proposal', right_on='proposals_id')
@@ -234,10 +234,13 @@ if st.button('START'):
                            ",votes_voter "
                            ",votes_choice"
                            ",votes_vp"
-                           ",votes_created"
+                           ",votes_created "
+                       "    ,proposals_title "
+                   "       , to_timestamp(min(votes_Created::bigint)) proposal_timestamp "
+                   "       , cast(to_timestamp(min(votes_Created::bigint))as date) proposal_date "
                            ",sum(votes_vp) over (Partition by Proposal  order by votes_vp desc, votes_created asc) as cumulative_vp"
                            ",sum(votes_vp) over (Partition by Proposal) as total_vp"
-                           ",(votes_vp::decimal/sum(votes_vp::decimal) over (Partition by Proposal)) as percentange_of_total_vp "
+                           ",(votes_vp::decimal/sum(votes_vp::decimal) over (Partition by Proposal)) as percentage_of_total_vp "
                            ",((sum(votes_vp) over (Partition by Proposal  order by votes_vp desc, votes_created asc))::decimal/sum(votes_vp::decimal) over (Partition by Proposal)) as cum_percentage_of_total_vp "
                            ",round((sum(votes_vp) over (Partition by Proposal  order by votes_vp desc, votes_created asc))::decimal/sum(votes_vp::decimal) over (Partition by Proposal)) as cum_percentage_of_total_vp_stepped "
                            ",row_number() over (Partition by Proposal order by votes_vp desc, votes_created asc) as proposal_voter_rank "
@@ -253,13 +256,13 @@ if st.button('START'):
                            "    ,votes_choice"
                            "    , votes_vp "
                            "    , votes_created "
+                           "    , proposals_title "
                            ""
                            "Order by "
-                           "    Proposal, "
+                           "    7 asc, "
                            "    votes_vp desc "
-                           "    , votes_created asc"                           
+                           "    , votes_created asc"
                            "").df()
-
 
     crunch_data.insert(0, 'DAO', spacename)
     crunch_data.head(n=10)
@@ -388,16 +391,45 @@ if st.button('START'):
 
     st.write('The chart below describes all proposals in', spacename,'.The orange markers represent what percentage of the population it takes to reach a given percentage of voting power.')
 
+    fig = plt.figure(figsize=(12, 6))
+
     #sns.lineplot(data=crunch_data, y="cum_percentage_of_total_vp",x="percentage_voters_counted_stepped", hue="Proposal",zorder=-3).set(title=plot_title,xlabel='% of voters',ylabel='% of voting power')#, legend=False)
     ax = sns.scatterplot(data=crunch_data, y="cum_percentage_of_total_vp", x="percentage_voters_counted_stepped").set(
         title=plot_title, xlabel='% of voters', ylabel='% of voting power')
     chart = sns.scatterplot(data=data_means, x="percentage_voters_counted_stepped", y="cum_percentage_of_total_vp",
                             zorder=3, s=300, marker='X', color='orange')
+    st.pyplot(fig)
+
     # and save the chart file, too
     #plt.savefig(final_file + '\\' + spacename + ' vote power distribution.png', dpi=50)
     #st.write('Chart Saved')
     # st.pyplot(sns.scatterplot(data=data_means, x="percentage_voters_counted_stepped", y="cum_percentage_of_total_vp", zorder=3, s=600, marker='X', color='orange'))
+
+
+    fig = plt.figure(figsize=(12, 6))
+
+    st.markdown("### These charts track how many voters have participated in each proposal")
+
+
+    voters_df = db.query("select  proposals_title, count(distinct votes_voter) total_voters,  min(proposal_date)::date proposal_date from crunch_data group by 1 ").df()
+
+
+    chart = sns.barplot(data=voters_df, x="proposal_date", y="total_voters", color='orange').set(
+        title='voters per snapshot', xlabel="proposal_date", ylabel='Voters',)
+
+    # and save the chart file, too
     st.pyplot(fig)
+
+    fig = plt.figure(figsize=(12, 6))
+
+    voters_df = db.query(
+        "select  proposals_title, count(distinct votes_voter) total_voters,  min(proposal_date)::date proposal_date from crunch_data where DATE_PART('day', now() - proposal_date)<=30 group by 1").df()
+
+    chart = sns.barplot(data=voters_df, x="proposal_date", y="total_voters", color='orange').set(
+        title='voters per snapshot - last 3 months', xlabel="proposal_date", ylabel='Voters')
+    # and save the chart file, too
+    st.pyplot(fig)
+
 
     st.markdown(
         '<p class="bigger-font">All done. Enjoy! Feel free to enter another space name to pull more data.</p>',
