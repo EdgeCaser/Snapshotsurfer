@@ -120,7 +120,7 @@ if len(spacename)>=3:
     choice = (st.selectbox('Select Proposal and press START',snapshots,1))
     choiceOG = choice
 
-    if len(choice)>3:
+    if st.button('START'):
         #st.write(choice)
 
         choicedf = pd.DataFrame(columns=['proposals_title'])
@@ -325,9 +325,56 @@ if len(spacename)>=3:
 
         #st.altair_chart(chart_data, use_container_width=False).mark_arc()
 
+        chart_data2 = db.query(
+                                    "With initdata as "
+                                    "( "
+                                    "select "
+                                   "    votes_voter as chart_voter"
+                                   "    , votes_vp  "         
+                                   "   ,PERCENTILE_CONT(0.001) WITHIN GROUP (ORDER BY votes_vp)as pnt01 "                                
+                                   "   ,PERCENTILE_CONT(0.025) WITHIN GROUP (ORDER BY votes_vp) as pnt05 "                             
+                                   "   ,PERCENTILE_CONT(0.01) WITHIN GROUP (ORDER BY votes_vp) as pnt10 "
+                                   "   ,PERCENTILE_CONT(0.025) WITHIN GROUP (ORDER BY votes_vp) as pnt15 "
+                                   "   ,PERCENTILE_CONT(0.03) WITHIN GROUP (ORDER BY votes_vp) as pnt20 " 
+                                   "   ,PERCENTILE_CONT(0.035) WITHIN GROUP (ORDER BY votes_vp) as pnt25 "
+                                   "   ,PERCENTILE_CONT(0.04) WITHIN GROUP (ORDER BY votes_vp) as pnt30 " 
+                                   "from crunch_data as chart_vp "
+                                    "Group by 1,2 "
+                                   "order by 2 "
+                                    ") "
+                                    ""
+                                    "Select "
+                                    "   chart_voter "
+                                    "   ,votes_vp "
+                                    "   ,case "
+                                    "       when  votes_vp <= pnt01 then pnt01 " 
+                                    "       when  votes_vp <= pnt05 then pnt05 " 
+                                    "       when  votes_vp <= pnt10 then pnt10 "
+                                    "       when  votes_vp <= pnt15 then pnt15 " 
+                                    "       when  votes_vp <= pnt20 then pnt20 "
+                                    "       when  votes_vp <= pnt25 then pnt25 " 
+                                    "       else pnt30 "
+                                    "       end chart_vp "
+                                    "From "
+                                    "   initdata "
+                                    ""
+                                    ).df()
+
+        fig3 = plt.figure(figsize=(10, 4))
+        #sns.displot(chart_data2, x="chart_vp", kind="kde")
+
+        sns.distplot(chart_data2['chart_vp'], hist=True, kde=True,
+                     bins=7, color='blue',
+                     hist_kws={'edgecolor': 'black'})
+
+        #sns.barplot(data=crunch_data, y="votes_vp", x="votes_voter", hue="vote_text").set(title=('voter balances'), ylabel='power distribution')
+        st.pyplot(fig3)
+
 
         st.markdown(
             '<p class="bigger-font">All done. Enjoy! Feel free to enter another space name, or choose another snapshot from the drop-down menu, to pull more data.</p>',
             unsafe_allow_html=True)
         # The chart above shows what % of all possible votes has been cast (Y axis) as each incremental percent of the voting population casts their vote (X axis). Each line is a Proposal and has a unique color, so that a dot on each percent point represents what % of total voting power was accumulated by that group. The color represents which vote was cast.
         # The Orange X shows the average % of power accumulated across all elections.
+
+
