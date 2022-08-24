@@ -148,7 +148,7 @@ if st.button('START'):
             snapshot.Vote.proposal == proposal_id
         ]
     )
-    st.write("HIYA2 - just checking")
+    #st.write("HIYA2 - just checking")
 
     voting_snapshots_list = sg.query_df([
         vote_tracker.id,
@@ -383,11 +383,11 @@ if st.button('START'):
     p50_val= p50.iloc[0, 0]
     p50display = round(100 * (p50.iloc[0, 0]), 2)
 
-    st.write('### On average, a proposal at ', spacename, 'takes ', ("{0:.2%}".format(p50_val)),
-             '% of the voting population to accumulate half or more of all the votes.')
+    st.write('### On average, a proposal at ', ("{0}".format(spacename)), 'takes ', ("{0:.2%}".format(p50_val)),
+             'of the voting population to accumulate half or more of all the votes.')
 
-    st.write('### A total of ', leader_count, 'addresses have driven the result of all proposals at', spacename,'.')
-    st.write('### That\'s', ("{0:.2%}".format(elite)), 'of all voters the DAO has ever had.')
+    st.write('### A total of ',("{0}".format(leader_count)) , 'addresses have driven the result of all proposals at', spacename,'.')
+    st.write('### That\'s', ("{0:.2%}".format(elite)), 'of all', ("{0}".format(dao_members)), 'voters the DAO has ever had.')
 
     st.write('The chart below describes all proposals in', spacename,'.The orange markers represent what percentage of the population it takes to reach a given percentage of voting power.')
 
