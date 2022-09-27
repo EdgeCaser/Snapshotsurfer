@@ -57,7 +57,7 @@ if st.button('START'):
         ])
         last_date = max(balances['tokenHolderBalances_date'])
         rowcount = len(balances_2)
-        print("iteration:",n,"rows:",rowcount, last_date)
+        st.write("iteration:",n,"rows:",rowcount, last_date)
         frames = [balances, balances_2]
         balances = pd.concat(frames)
         if rowcount<1000:
