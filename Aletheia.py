@@ -64,10 +64,10 @@ balances
 
 csv = convert_df(balances)
 
-        st.download_button(
-            "Press to download balances data",
-            csv,
-            "balances.csv",
-            "text/csv",
-            key='download-csv'
-        )
+st.download_button(
+    "Press to download balances data",
+    csv,
+    "balances.csv",
+    "text/csv",
+    key='download-csv'
+)
