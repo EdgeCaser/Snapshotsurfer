@@ -29,6 +29,7 @@ st.markdown("""
 
 st.write('# Snapshot Surfer')
 st.write('## By @Edgecaser')
+st.write('Now Improved!')
 
 st.markdown('<p class="bigger-font">This tool will help you view how decentralized a DAO\'s voting power is.</p>', unsafe_allow_html=True)
 
@@ -62,10 +63,11 @@ spacename = ''
 spacename = st.text_input('Where to pull from? Type your selection then press START',help='Which space, eg: curve.eth')
 
 daysLimitInput =''
-daysLimit = 0
+#daysLimit = 10
+daysLimitInput = ''
 
-daysLimitInput = (st.text_input('How many days in the past do you want to go?',help='Snapshotsurfer will pull data going this many days back'))
-daysLimit = int(daysLimitInput)
+daysLimit = st.text_input('How many days in the past do you want to go?',help='Snapshotsurfer will pull data going this many days back')
+#daysLimit = int(daysLimitInput)
 
 
 if st.button('START'):
@@ -438,7 +440,7 @@ if st.button('START'):
     st.pyplot(fig)
 
     voterCounts = db.query("Select"
-                           " date(startDate) as startDate "
+                           " cast(startDate as date) as startDate "
                            ",count(distinct votes_voter) as voters "
                            "From crunch_data "
                            "Group by 1").df()
