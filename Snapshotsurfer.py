@@ -29,7 +29,7 @@ st.markdown("""
 
 st.write('# Snapshot Surfer')
 st.write('## By @Edgecaser')
-st.write('Now Improved!')
+st.write('Version 2')
 
 st.markdown('<p class="bigger-font">This tool will help you view how decentralized a DAO\'s voting power is.</p>', unsafe_allow_html=True)
 
