@@ -10,6 +10,7 @@ import duckdb as db
 import seaborn as sns
 import matplotlib.pyplot as plt
 import streamlit as st
+import re
 
 st.set_page_config(layout="wide")
 
@@ -106,6 +107,9 @@ if st.button('START'):
     proposals_snapshots['createdDate'] = (pd.to_datetime(proposals_snapshots['proposals_created'], unit='s'))
     proposals_snapshots['startDate'] = (pd.to_datetime(proposals_snapshots['proposals_start'], unit='s'))
     proposals_snapshots['endDate'] = (pd.to_datetime(proposals_snapshots['proposals_end'], unit='s'))
+    #pattern = r'^[^-]+-[^-:]+'
+    proposals_snapshots['Symbol'] = proposals_snapshots['proposals_title'].str.extract(r'^([^-\s]+[-\s][^-\s:]+)')
+    #proposals_snapshots['proposals_title']
 
     total_snapshots = len(proposals_snapshots)
 
@@ -145,7 +149,7 @@ if st.button('START'):
 
 
     st.write('Pulling vote records...')
-    mybar = st.progress(0)
+    #mybar = st.progress(0)
 
     voteTicker = 0
     totalProposals = len(olympus_governance_view)
@@ -203,7 +207,9 @@ if st.button('START'):
         #print('ticker', voteTicker, 'proposal', proposal_id, 'records:', voteListLength, 'DB size:', votesDbLength,'    -days ago:', datediff, '     -date', then, '    -exit?', exit)
         # print(proposal_id, voteDate, datediff)
 
-        #chartprogress = voteTicker/totalProposals
+        #chartprogress = (voteTicker/totalProposals)
+        #chartprogress = int(datediff)/int(daysLimit)
+        #print(chartprogress)
         ##clear_output(wait=True)
         #mybar.progress(chartprogress)
         voteTicker = voteTicker + 1
@@ -429,9 +435,14 @@ if st.button('START'):
     st.write('### Let\'s visualize this: The chart below describes all proposals in', spacename,
              '.The orange markers represent what percentage of the population it takes to reach a given percentage of voting power.')
 
+
+    crunch_data['symbol'] = crunch_data['proposals_title'].str.extract(r'^([^-\s]+[-\s][^-\s:]+)')
+    crunch_data['symbol'] = crunch_data['symbol'].str.strip('[]')
+
+
     plot_title = spacename + ' snapshots\' % of vote along population with Average as X'
 
-    ax = sns.scatterplot(data=crunch_data, hue="proposals_id", y="cum_percentage_of_total_vp",
+    ax = sns.scatterplot(data=crunch_data, hue="symbol", y="cum_percentage_of_total_vp",
                          x="percentage_voters_counted_stepped").set(title=plot_title, xlabel='% of voters',
                                                                     ylabel='% of voting power')
     chart = sns.scatterplot(data=data_means, x="percentage_voters_counted_stepped", y="cum_percentage_of_total_vp",
@@ -440,7 +451,7 @@ if st.button('START'):
     st.pyplot(fig)
 
     voterCounts = db.query("Select"
-                           " cast(startDate as date) as startDate "
+                           " symbol "
                            ",count(distinct votes_voter) as voters "
                            "From crunch_data "
                            "Group by 1").df()
@@ -451,7 +462,8 @@ if st.button('START'):
     sns.set_style("whitegrid")
     plt.rc("font", size=25)
     plot_title = spacename + ': Voters per proposal'
-    chart = sns.barplot(data=voterCounts, x="startDate", y="voters", color='orange')
+    chart = sns.barplot(data=voterCounts, x="symbol", y="voters", color='orange')
+    chart.set_xticklabels(chart.get_xticklabels(), rotation=45, ha='right')
     st.pyplot(fig)
 
 

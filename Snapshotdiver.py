@@ -65,15 +65,14 @@ if len(spacename)>=3:
     )
 
     proposals = snapshot.Query.proposals(
-      orderBy='created',
-      orderDirection='desc',
-      first=10000,
-
-      where=[
-        snapshot.Proposal.space == spacename, ##'fuse.eth',
-        snapshot.Proposal.state == 'closed'
-        ##snapshot.Proposal.title == 'OIP-18: Reward rate framework and reduction',
-      ]
+        orderBy='created',
+        orderDirection='desc',
+        first=1000,
+        where=[
+            snapshot.Proposal.space == spacename,  ##'fuse.eth',
+            snapshot.Proposal.state == 'closed'
+            ##snapshot.Proposal.title == 'OIP-18: Reward rate framework and reduction',
+        ]
     )
 
     proposals_snapshots = sg.query_df([
@@ -95,7 +94,7 @@ if len(spacename)>=3:
     #remove duplicates
     dao_governance_view_clean = dao_governance_view.copy(deep=True)
 
-    dao_governance_view_clean = db.query("select  to_timestamp(proposals_created) as proposal_date,*  "
+    dao_governance_view_clean = db.query("select  to_timestamp(proposals_created::int) as proposal_date,*  "
                                          "from dao_governance_view_clean order by proposals_created desc").df()
 
     dao_governance_view_clean.insert(0, 'DAO', spacename)
@@ -170,7 +169,7 @@ if len(spacename)>=3:
 
         # add an empty column for the choice text to choice_list
         choice_list.insert(2, 'vote_text', '')
-
+        st.write( choice_list)
         # now we add the actual body, row by row,  using the vote choice number as the lookup index in dao_governance_view_clean (accounting for the first 6 columns
 
         shape = choice_list.shape
